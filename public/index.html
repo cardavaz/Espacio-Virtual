@@ -478,48 +478,63 @@ const BENCH_DEFS={
   b4:{seats:[{x:600,y:335},{x:635,y:335},{x:670,y:335}]},  // abajo-der
 };
 
-function drawBenchesOnBg(ctx,W,H){
-  Object.entries(BENCH_DEFS).forEach(([id,bd])=>{
-    // Centro del banco = promedio de asientos
-    const cx=bd.seats.reduce((s,a)=>s+a.x,0)/3;
-    const cy=bd.seats.reduce((s,a)=>s+a.y,0)/3;
-    const bx=(cx/800)*W-50, by=(cy/450)*H-10;
-    const sw=100, sh=18;
+function drawBenchesOnBg(ctx, W, H){
+  const defs = getBenchDefs();
+  Object.entries(defs).forEach(([id, bd]) => {
+    const cx = bd.drawX, cy = bd.drawY;
+    const sw = W * 0.12; // ancho banco = 12% del canvas
+    const sh = H * 0.038;
+    const bx = cx - sw/2, by = cy - sh/2;
     // Sombra
-    ctx.fillStyle="rgba(42,26,8,0.13)";ctx.fillRect(bx+3,by+sh+3,sw,6);
+    ctx.fillStyle = "rgba(42,26,8,0.13)";
+    ctx.fillRect(bx+3, by+sh+3, sw, 6);
     // Respaldo
-    ctx.fillStyle=C.f3;ctx.fillRect(bx,by-10,sw,10);
-    ctx.strokeStyle=C.tr2;ctx.lineWidth=1;ctx.strokeRect(bx,by-10,sw,10);
+    ctx.fillStyle = C.f3;
+    ctx.fillRect(bx, by-sh*.6, sw, sh*.6);
+    ctx.strokeStyle = C.tr2; ctx.lineWidth = 1;
+    ctx.strokeRect(bx, by-sh*.6, sw, sh*.6);
     // Asiento
-    ctx.fillStyle=C.f4;ctx.fillRect(bx,by,sw,sh);
-    ctx.fillStyle=C.f2;ctx.fillRect(bx,by+sh,sw,6);
-    ctx.strokeStyle=C.tr2;ctx.lineWidth=1.2;ctx.strokeRect(bx,by,sw,sh+6);
+    ctx.fillStyle = C.f4; ctx.fillRect(bx, by, sw, sh);
+    ctx.fillStyle = C.f2; ctx.fillRect(bx, by+sh, sw, sh*.35);
+    ctx.strokeStyle = C.tr2; ctx.lineWidth = 1.2;
+    ctx.strokeRect(bx, by, sw, sh+sh*.35);
     // Highlight madera
-    ctx.fillStyle="rgba(255,255,255,0.15)";ctx.fillRect(bx+3,by+2,sw-6,4);
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    ctx.fillRect(bx+3, by+2, sw-6, sh*.3);
     // Patas
-    ctx.fillStyle=C.tr1;
-    ctx.fillRect(bx+6,by+sh+4,6,12);ctx.fillRect(bx+sw-12,by+sh+4,6,12);
-    // Asientos indicadores
-    bd.seats.forEach((seat,i)=>{
-      const sx=(seat.x/800)*W,sy=(seat.y/450)*H;
-      const occ=benchState[id]?.occupied?.[i];
-      ctx.fillStyle=occ?"rgba(180,130,100,0.45)":"rgba(255,255,255,0.3)";
-      ctx.beginPath();ctx.ellipse(sx,sy+2,9,4,0,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle="rgba(42,26,8,0.2)";ctx.lineWidth=.8;
-      ctx.beginPath();ctx.ellipse(sx,sy+2,9,4,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle = C.tr1;
+    const legW = sw*0.06, legH = H*0.025;
+    ctx.fillRect(bx+sw*.08, by+sh+sh*.3, legW, legH);
+    ctx.fillRect(bx+sw*.86, by+sh+sh*.3, legW, legH);
+    // Indicadores de asientos
+    bd.seats.forEach((seat, i) => {
+      const sx = (seat.x/800)*W, sy2 = (seat.y/450)*H;
+      const occ = benchState[id]?.occupied?.[i];
+      ctx.fillStyle = occ ? "rgba(180,130,100,0.45)" : "rgba(255,255,255,0.3)";
+      ctx.beginPath(); ctx.ellipse(sx, sy2+sh*.2, sw*.09, sh*.3, 0, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = "rgba(42,26,8,0.2)"; ctx.lineWidth = .8;
+      ctx.beginPath(); ctx.ellipse(sx, sy2+sh*.2, sw*.09, sh*.3, 0, 0, Math.PI*2); ctx.stroke();
     });
   });
 }
 
-function handleBenchClick(ex,ey,W,H){
-  if(currentRoom!=="lobby")return false;
-  for(const[id,bd]of Object.entries(BENCH_DEFS)){
-    for(let i=0;i<bd.seats.length;i++){
-      const seat=bd.seats[i];
-      const sx=(seat.x/800)*W,sy=(seat.y/450)*H;
-      if(Math.abs(ex-sx)<20&&Math.abs(ey-sy)<20){
-        if(mySeat&&mySeat.benchId===id&&mySeat.seatIdx===i){socket.emit("stand");mySeat=null;}
-        else{socket.emit("sit",{benchId:id,seatIdx:i});mySeat={benchId:id,seatIdx:i};}
+function handleBenchClick(ex, ey, W, H){
+  if(currentRoom !== "lobby") return false;
+  const defs = getBenchDefs();
+  for(const [id, bd] of Object.entries(defs)){
+    for(let i = 0; i < bd.seats.length; i++){
+      const seat = bd.seats[i];
+      const sx = (seat.x/800)*W, sy = (seat.y/450)*H;
+      const hitW = W*0.04, hitH = H*0.05;
+      if(Math.abs(ex-sx) < hitW && Math.abs(ey-sy) < hitH){
+        if(mySeat && mySeat.benchId===id && mySeat.seatIdx===i){
+          socket.emit("stand"); mySeat=null;
+        } else {
+          // Enviar las coordenadas actualizadas al servidor
+          socket.emit("sit", {benchId: id, seatIdx: i,
+            x: seat.x, y: seat.y});
+          mySeat = {benchId: id, seatIdx: i};
+        }
         return true;
       }
     }
