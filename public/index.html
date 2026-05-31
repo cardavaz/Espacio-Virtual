@@ -129,6 +129,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
   <h1>🌿 Espacio Virtual</h1>
   <input id="my-name" placeholder="Tu nombre" maxlength="20">
   <button id="edit-avatar-btn">✏️ Avatar</button>
+  <button id="emote-btn" style="background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:4px 10px;border-radius:8px;cursor:pointer;font-size:14px;position:relative">😊</button>
   <div id="room-btns"></div>
   <span id="online-count">0 online</span>
 </div>
@@ -621,6 +622,17 @@ const emotePicker=document.getElementById("emote-picker");
 let activeEmotes={};
 const EMOTE_DUR=180;
 
+// Botón emote en header
+document.getElementById("emote-btn").addEventListener("click", e => {
+  e.stopPropagation();
+  const btn = document.getElementById("emote-btn");
+  const rect = btn.getBoundingClientRect();
+  const wrap = document.getElementById("world-wrap").getBoundingClientRect();
+  emotePicker.style.left = Math.max(4, rect.left - wrap.left) + "px";
+  emotePicker.style.top  = (rect.bottom - wrap.top + 6) + "px";
+  emotePicker.classList.toggle("visible");
+});
+
 document.querySelectorAll(".emote-opt").forEach(btn=>{
   btn.addEventListener("click",e=>{
     e.stopPropagation();
@@ -698,8 +710,7 @@ function handleWorldClick(ex,ey){
     }
   }
 
-  if(players[socket.id]){const p=players[socket.id];const vp=getVP(p.id,p.x,p.y);const S=2.5;const ax=(vp.x/800)*W,ay=(vp.y/450)*H;if(ex>ax-10*S&&ex<ax+10*S&&ey>ay-18*S-20&&ey<ay+6*S){showEmotePicker(ex,ey);return;}}
-if(handleBenchClick(ex,ey,W,H))return;
+  if(handleBenchClick(ex,ey,W,H))return;
   if(mySeat){socket.emit("stand");mySeat=null;}
   socket.emit("move",{x:(ex/W)*800,y:(ey/H)*450});
 }
