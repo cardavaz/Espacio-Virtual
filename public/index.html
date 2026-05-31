@@ -696,20 +696,6 @@ function typingInInput(e){const t=e.target;return t&&(t.tagName==="INPUT"||t.tag
 function handleWorldClick(ex, ey){
   const rect=document.getElementById("world-wrap").getBoundingClientRect();
   const W=rect.width, H=rect.height;
-
-  // ¿Click sobre mi propio avatar?
-  if(me && players[socket.id]){
-    const p = players[socket.id];
-    const vp = getVP(p.id, p.x, p.y);
-    const ax = (vp.x/800)*W;
-    const ay = (vp.y/450)*H;
-    const S = 2.5;
-    if(Math.abs(ex-ax)<14*S && Math.abs(ey-ay)<20*S){
-      showEmotePicker(ex, ey);
-      return;
-    }
-  }
-
   if(handleBenchClick(ex,ey,W,H))return;
   if(mySeat){socket.emit("stand");mySeat=null;}
   socket.emit("move",{x:(ex/W)*800,y:(ey/H)*450});
