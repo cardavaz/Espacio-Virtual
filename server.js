@@ -39,6 +39,12 @@ io.on("connection", (socket) => {
   socket.emit("init", { player, rooms: serializeRooms() });
   io.to("lobby").emit("room_update", { room: "lobby", players: Object.values(rooms.lobby.players) });
 
+  // Avatar
+  socket.on("update_avatar", (avatarData) => {
+    player.avatarData = avatarData;
+    io.to(player.room).emit("avatar_updated", { id: socket.id, avatarData });
+  });
+
   // Cambiar nombre
   socket.on("set_name", (name) => {
     if (!name || name.length > 20) return;
