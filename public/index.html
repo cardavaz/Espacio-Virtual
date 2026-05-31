@@ -18,13 +18,25 @@ body{font-family:system-ui,sans-serif;background:#1a1a2e;color:#eee;height:100vh
 .room-btn:hover,.room-btn.active{background:#e94560;border-color:#e94560;color:#fff}
 #online-count{margin-left:auto;font-size:11px;color:#888;white-space:nowrap}
 
-#main{flex:1;display:flex;overflow:hidden}
-#world-wrap{flex:1;position:relative;overflow:hidden}
+#main{flex:1;display:flex;overflow:hidden;flex-direction:row}
+#world-wrap{flex:1;position:relative;overflow:hidden;min-width:0}
 #world{width:100%;height:100%;position:relative}
 #canvas-bg{position:absolute;top:0;left:0;width:100%;height:100%;image-rendering:pixelated}
 #canvas-avatars{position:absolute;top:0;left:0;width:100%;height:100%;image-rendering:pixelated;pointer-events:none}
 
 #sidebar{width:240px;display:flex;flex-direction:column;background:#16213e;border-left:1px solid #0f3460}
+
+@media(max-width:600px){
+  #main{flex-direction:column}
+  #sidebar{width:100%;height:200px;border-left:none;border-top:1px solid #0f3460;flex-shrink:0}
+  #header{padding:5px 8px;gap:6px}
+  #header h1{font-size:13px}
+  #my-name{width:100px;font-size:12px}
+  #edit-avatar-btn{font-size:11px;padding:3px 7px}
+  .room-btn{font-size:11px;padding:3px 7px}
+  #online-count{font-size:10px}
+  #room-btns{display:flex;flex-wrap:wrap;gap:4px}
+}
 #chat-box{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px}
 .msg{background:#0f3460;border-radius:8px;padding:6px 8px;font-size:12px;word-break:break-word}
 .msg .who{font-weight:700;color:#e94560;margin-bottom:2px;font-size:11px}
@@ -621,7 +633,7 @@ function canPlace(p,dx,dy){return p.shape.every((row,r)=>row.every((v,c)=>{if(!v
 function tetTick(){if(tetGameOver)return;if(canPlace(tetPiece,0,1))tetPiece.y++;else lockPiece();drawTetris();}
 function lockPiece(){tetPiece.shape.forEach((row,r)=>row.forEach((v,c)=>{if(v&&tetPiece.y+r>=0)tetGrid[tetPiece.y+r][tetPiece.x+c]=tetPiece.color;}));let cleared=0;for(let r=TROWS-1;r>=0;){if(tetGrid[r].every(c=>c)){tetGrid.splice(r,1);tetGrid.unshift(Array(TCOLS).fill(null));cleared++;}else r--;}const pts=[0,100,300,500,800];tetScore+=pts[cleared]*tetLevel;tetLines+=cleared;tetLevel=Math.floor(tetLines/10)+1;clearInterval(tetrisInterval);tetrisInterval=setInterval(tetTick,Math.max(100,500-tetLevel*40));spawnTet();const s=document.getElementById("t-score"),l=document.getElementById("t-level"),ln=document.getElementById("t-lines");if(s)s.textContent=tetScore;if(l)l.textContent=tetLevel;if(ln)ln.textContent=tetLines;}
 function drawTetris(){const cv=document.getElementById("tetris-canvas");if(!cv)return;const c=cv.getContext("2d"),nc=document.getElementById("next-canvas")?.getContext("2d");c.fillStyle="#0a0010";c.fillRect(0,0,TCOLS*TSIZE2,TROWS*TSIZE2);tetGrid.forEach((row,r)=>row.forEach((col,cc)=>{if(col){c.fillStyle=col;c.fillRect(cc*TSIZE2+1,r*TSIZE2+1,TSIZE2-2,TSIZE2-2);}}));c.strokeStyle="rgba(255,255,255,0.03)";c.lineWidth=0.5;for(let x=0;x<=TCOLS;x++){c.beginPath();c.moveTo(x*TSIZE2,0);c.lineTo(x*TSIZE2,TROWS*TSIZE2);c.stroke();}for(let y=0;y<=TROWS;y++){c.beginPath();c.moveTo(0,y*TSIZE2);c.lineTo(TCOLS*TSIZE2,y*TSIZE2);c.stroke();}let ghostY=tetPiece.y;while(canPlace(tetPiece,0,ghostY-tetPiece.y+1))ghostY++;tetPiece.shape.forEach((row,r)=>row.forEach((v,cc)=>{if(v){c.fillStyle="rgba(255,255,255,0.08)";c.fillRect((tetPiece.x+cc)*TSIZE2+1,(ghostY+r)*TSIZE2+1,TSIZE2-2,TSIZE2-2);}}));tetPiece.shape.forEach((row,r)=>row.forEach((v,cc)=>{if(v){c.fillStyle=tetPiece.color;c.fillRect((tetPiece.x+cc)*TSIZE2+1,(tetPiece.y+r)*TSIZE2+1,TSIZE2-2,TSIZE2-2);}}));if(tetGameOver){c.fillStyle="rgba(0,0,0,0.7)";c.fillRect(0,0,TCOLS*TSIZE2,TROWS*TSIZE2);c.fillStyle="#e94560";c.font="bold 22px system-ui";c.textAlign="center";c.fillText("GAME OVER",TCOLS*TSIZE2/2,TROWS*TSIZE2/2);}if(nc){nc.fillStyle="#0a0010";nc.fillRect(0,0,80,80);const offX=(4-tetNext.shape[0].length)/2*14,offY=(4-tetNext.shape.length)/2*14;tetNext.shape.forEach((row,r)=>row.forEach((v,cc)=>{if(v){nc.fillStyle=tetNext.color;nc.fillRect(offX+cc*14+1,offY+r*14+1,13,13);}}));}}
-document.addEventListener("keydown",e=>{if(currentGame!=="tetris"||tetGameOver||!tetPiece)return;if(e.key==="ArrowLeft"&&canPlace(tetPiece,-1,0)){tetPiece.x--;drawTetris();}if(e.key==="ArrowRight"&&canPlace(tetPiece,1,0)){tetPiece.x++;drawTetris();}if(e.key==="ArrowDown"&&canPlace(tetPiece,0,1)){tetPiece.y++;drawTetris();}if(e.key===" "){while(canPlace(tetPiece,0,1))tetPiece.y++;lockPiece();drawTetris();}if(e.key==="ArrowUp"){const rot=tetPiece.shape[0].map((_,i)=>tetPiece.shape.map(r=>r[i]).reverse());const orig=tetPiece.shape;tetPiece.shape=rot;if(!canPlace(tetPiece,0,0))tetPiece.shape=orig;drawTetris();}});
+document.addEventListener("keydown",e=>{if(typingInInput(e))return;if(currentGame!=="tetris"||tetGameOver||!tetPiece)return;if(e.key==="ArrowLeft"&&canPlace(tetPiece,-1,0)){tetPiece.x--;drawTetris();}if(e.key==="ArrowRight"&&canPlace(tetPiece,1,0)){tetPiece.x++;drawTetris();}if(e.key==="ArrowDown"&&canPlace(tetPiece,0,1)){tetPiece.y++;drawTetris();}if(e.key===" "){while(canPlace(tetPiece,0,1))tetPiece.y++;lockPiece();drawTetris();}if(e.key==="ArrowUp"){const rot=tetPiece.shape[0].map((_,i)=>tetPiece.shape.map(r=>r[i]).reverse());const orig=tetPiece.shape;tetPiece.shape=rot;if(!canPlace(tetPiece,0,0))tetPiece.shape=orig;drawTetris();}});
 
 // Solitario
 let solState=null;
