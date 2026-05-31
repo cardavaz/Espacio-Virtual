@@ -656,7 +656,14 @@ document.getElementById("world").addEventListener("touchend",e=>{
 },{passive:false});
 
 // ── NOMBRE & CHAT ─────────────────────────────────────────────────────────
-document.getElementById("my-name").addEventListener("change",e=>socket.emit("set_name",e.target.value.trim()));
+const savedName = localStorage.getItem("ev_nombre");
+if(savedName) document.getElementById("my-name").value = savedName;
+
+document.getElementById("my-name").addEventListener("change",e=>{
+  const n = e.target.value.trim();
+  if(n) localStorage.setItem("ev_nombre", n);
+  socket.emit("set_name", n);
+});
 const chatBox=document.getElementById("chat-box"),chatInput=document.getElementById("chat-input");
 document.getElementById("chat-send").addEventListener("click",sendChat);
 chatInput.addEventListener("keydown",e=>{if(e.key==="Enter")sendChat();});
@@ -785,7 +792,13 @@ function handleMusicForRoom(room){if(room==="lobby"){showMusicBar(true);setTimeo
 // ── SOCKET ────────────────────────────────────────────────────────────────
 socket.on("init",({player,rooms})=>{
   me=player;
-  document.getElementById("my-name").value=player.name;
+  const savedName = localStorage.getItem("ev_nombre");
+  if(savedName){
+    document.getElementById("my-name").value = savedName;
+    socket.emit("set_name", savedName);
+  } else {
+    document.getElementById("my-name").value = player.name;
+  }
   buildRoomBtns(rooms);
   drawBigPreview();
 });
