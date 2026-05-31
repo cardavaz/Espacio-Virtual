@@ -961,7 +961,14 @@ socket.on("pomodoro_state",({running,seconds})=>{
 socket.on("pomodoro_done",()=>toast("🍅 ¡Pomodoro terminado!"));
 socket.on("avatar_updated",({id,avatarData})=>{if(players[id])players[id].avatarData=avatarData;});
 
-// ── EMOTES ────────────────────────────────────────────────────────────────
+function gameLoop(){
+  animTick++;tickMovement();
+  if(animTick%4===0)drawBg();
+  drawAvatars();
+  drawEmotes(avCanvas.width,avCanvas.height);
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
 const emotePicker=document.getElementById("emote-picker");
 let activeEmotes={};
 const EMOTE_DUR=180;
@@ -1046,8 +1053,8 @@ document.getElementById("world")._clickHandler=e=>{
 };
 document.getElementById("world").addEventListener("click",document.getElementById("world")._clickHandler);
 
-window.toast=function(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.opacity="1";setTimeout(()=>t.style.opacity="0",3000);};
-resizeCanvases();
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.opacity="1";setTimeout(()=>t.style.opacity="0",3000);}
+window.addEventListener("resize",()=>{resizeCanvases();drawBg();});resizeCanvases();
 handleMusicForRoom("lobby");
 drawBigPreview();
 </script>
