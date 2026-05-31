@@ -1017,7 +1017,14 @@ function loadYouTube(raw){
         },
         onError:(e)=>{
           const msgs={2:"URL inválida",5:"HTML5 no soportado",100:"Video no encontrado",101:"No permitido embeber",150:"No permitido embeber"};
-          musicTitle.textContent="⚠ "+(msgs[e.data]||"Error YouTube — probá con un video más corto");
+          const msg=msgs[e.data]||"Error";
+          // Si es error de embed, probar siguiente video de lofi
+          if((e.data===101||e.data===150) && raw.includes(LOFI_VIDEOS[0])){
+            musicTitle.textContent="Probando alternativa...";
+            setTimeout(()=>loadYouTube("https://www.youtube.com/watch?v="+LOFI_VIDEOS[1]),800);
+          } else {
+            musicTitle.textContent="⚠ "+msg+" — probá con otro video";
+          }
         }
       }
     });
