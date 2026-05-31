@@ -24,9 +24,10 @@ let avatarIdx = 0;
 
 // Bancos en lobby — 3 bancos x 3 asientos
 const benches = {
-  b1: {seats: [{x:200,y:300},{x:230,y:300},{x:260,y:300}], occupied: [null,null,null]},
-  b2: {seats: [{x:500,y:300},{x:530,y:300},{x:560,y:300}], occupied: [null,null,null]},
-  b3: {seats: [{x:350,y:160},{x:380,y:160},{x:410,y:160}], occupied: [null,null,null]},
+  b1: {seats: [{x:120,y:110},{x:155,y:110},{x:190,y:110}], occupied: [null,null,null]},
+  b2: {seats: [{x:610,y:110},{x:645,y:110},{x:680,y:110}], occupied: [null,null,null]},
+  b3: {seats: [{x:120,y:340},{x:155,y:340},{x:190,y:340}], occupied: [null,null,null]},
+  b4: {seats: [{x:610,y:340},{x:645,y:340},{x:680,y:340}], occupied: [null,null,null]},
 };
 
 function freeBenchSeats(playerId){

@@ -181,6 +181,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
           <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.1">
         </div>
       </div>
+      <div id="music-start-row" style="display:flex;justify-content:center;padding:4px 0">
+        <button id="music-start-btn" style="background:var(--accent2);border:none;color:#fff;padding:6px 18px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600">🎶 Iniciar Lofi</button>
+      </div>
       <div id="music-input-row">
         <input id="music-url" placeholder="YouTube o MP3..." type="text">
         <button class="music-action-btn" id="music-load-btn">Cargar</button>
@@ -467,10 +470,12 @@ function drawFountain(ctx,cx,cy,tick){
 // ── BANCOS ────────────────────────────────────────────────────────────────
 let benchState={};
 let mySeat=null;
+// 4 bancos, uno en cada cuadrante verde
 const BENCH_DEFS={
-  b1:{seats:[{x:200,y:300},{x:230,y:300},{x:260,y:300}]},
-  b2:{seats:[{x:500,y:300},{x:530,y:300},{x:560,y:300}]},
-  b3:{seats:[{x:350,y:160},{x:380,y:160},{x:410,y:160}]},
+  b1:{seats:[{x:120,y:110},{x:155,y:110},{x:190,y:110}]},  // arriba-izq
+  b2:{seats:[{x:610,y:110},{x:645,y:110},{x:680,y:110}]},  // arriba-der
+  b3:{seats:[{x:120,y:340},{x:155,y:340},{x:190,y:340}]},  // abajo-izq
+  b4:{seats:[{x:610,y:340},{x:645,y:340},{x:680,y:340}]},  // abajo-der
 };
 
 function drawBenchesOnBg(ctx,W,H){
