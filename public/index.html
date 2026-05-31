@@ -149,20 +149,23 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     </div>
     <div id="arcade-menu">
       <h2>🕹️ Arcade</h2>
-      <button class="game-btn" onclick="openGame('pong')"><span>🏓</span>Pong <small style="color:var(--text3);float:right">2 jugadores</small></button>
-      <button class="game-btn" onclick="openGame('chess')"><span>♟️</span>Ajedrez <small style="color:var(--text3);float:right">2 jugadores</small></button>
-      <button class="game-btn" onclick="openGame('tetris')"><span>🟦</span>Tetris <small style="color:var(--text3);float:right">1 jugador</small></button>
-      <button class="game-btn" onclick="openGame('solitaire')"><span>🃏</span>Solitario <small style="color:var(--text3);float:right">1 jugador</small></button>
+      <button class="game-btn" onclick="openGame('pong')"><span>🏓</span><span class="g-label">Pong</span><span class="g-tag">2 jugadores</span></button>
+      <button class="game-btn" onclick="openGame('chess')"><span>♟️</span><span class="g-label">Ajedrez</span><span class="g-tag">2 jugadores</span></button>
+      <button class="game-btn" onclick="openGame('tetris')"><span>🟦</span><span class="g-label">Tetris</span><span class="g-tag">1 jugador</span></button>
+      <button class="game-btn" onclick="openGame('solitaire')"><span>🃏</span><span class="g-label">Solitario</span><span class="g-tag">1 jugador</span></button>
     </div>
     <div id="game-overlay">
       <div id="game-title-bar"><h3 id="game-title">Juego</h3><button id="back-to-menu" onclick="closeGame()">← Menú</button></div>
       <div id="game-container"></div>
     </div>
     <div id="pomodoro-wrap">
+      <div id="pom-title">🍅 Pomodoro</div>
       <div id="pom-time">25:00</div>
-      <div id="pom-label">Pomodoro compartido</div>
-      <button class="pom-btn" onclick="socket.emit('pomodoro_toggle')">▶ / ⏸</button>
-      <button class="pom-btn secondary" onclick="socket.emit('pomodoro_reset')">Reset</button>
+      <div id="pom-label">Compartido</div>
+      <div class="pom-btns">
+        <button class="pom-btn" onclick="socket.emit('pomodoro_toggle')">▶ / ⏸</button>
+        <button class="pom-btn secondary" onclick="socket.emit('pomodoro_reset')">↺</button>
+      </div>
     </div>
     <div id="music-bar">
       <div id="music-top">
@@ -314,16 +317,38 @@ function drawChibi(ctx,ox,oy,av,name,isMe,frame=0){
   // hair shine
   ctx.fillStyle="rgba(255,255,255,0.18)";ctx.fillRect(ox+4*S,oy+.5*S,4*S,1*S);
 
-  // Eyes — large chibi eyes
-  const eyeC=fem?"#7060a0":"#406090";
-  // left eye
-  r(3,3,4,4,"#f8f0ee"); r(3,4,4,3,eyeC); r(4,5,2,2,C.dk); r(3,3,1,1,"#fff8");
-  ctx.fillStyle=C.dk;ctx.fillRect(ox+2*S,oy+3*S,.8*S,4*S);ctx.fillRect(ox+7*S,oy+3*S,.8*S,4*S);ctx.fillRect(ox+3*S,oy+2*S,4*S,.8*S);ctx.fillRect(ox+3*S,oy+7*S,4*S,.8*S);
-  if(fem){ctx.fillStyle=C.dk;ctx.fillRect(ox+3*S,oy+2*S,4*S,.8*S);}
-  // right eye
-  r(9,3,4,4,"#f8f0ee"); r(9,4,4,3,eyeC); r(10,5,2,2,C.dk); r(9,3,1,1,"#fff8");
-  ctx.fillStyle=C.dk;ctx.fillRect(ox+8*S,oy+3*S,.8*S,4*S);ctx.fillRect(ox+13*S,oy+3*S,.8*S,4*S);ctx.fillRect(ox+9*S,oy+2*S,4*S,.8*S);ctx.fillRect(ox+9*S,oy+7*S,4*S,.8*S);
-  if(fem){ctx.fillStyle=C.dk;ctx.fillRect(ox+9*S,oy+2*S,4*S,.8*S);}
+  // Eyes — clean chibi, no dark rings
+  const eyeWhite="#f8f4f0";
+  const irisL=fem?"#9070b8":"#507098";
+  const irisR=fem?"#9070b8":"#507098";
+
+  // Left eye — white base, iris, pupil, shine
+  r(3,3,4,4,eyeWhite);
+  r(3.5,3.5,3,3,irisL);
+  r(4.5,4.5,1.5,1.5,C.dk);
+  r(3.5,3.5,1,1,"rgba(255,255,255,0.9)"); // shine top-left
+  // clean outline only top+sides
+  ctx.strokeStyle="rgba(42,26,8,0.5)";ctx.lineWidth=.7;
+  ctx.strokeRect(ox+3*S+.5,oy+3*S+.5,4*S-1,4*S-1);
+
+  // Right eye
+  r(9,3,4,4,eyeWhite);
+  r(9.5,3.5,3,3,irisR);
+  r(10.5,4.5,1.5,1.5,C.dk);
+  r(9.5,3.5,1,1,"rgba(255,255,255,0.9)");
+  ctx.strokeStyle="rgba(42,26,8,0.5)";ctx.lineWidth=.7;
+  ctx.strokeRect(ox+9*S+.5,oy+3*S+.5,4*S-1,4*S-1);
+
+  // Eyelashes (female only — fine lines above)
+  if(fem){
+    ctx.strokeStyle="rgba(42,26,8,0.7)";ctx.lineWidth=.8;
+    ctx.beginPath();ctx.moveTo(ox+3*S,oy+3*S);ctx.lineTo(ox+3.5*S,oy+2.2*S);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ox+5*S,oy+2.8*S);ctx.lineTo(ox+5*S,oy+2*S);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ox+7*S,oy+3*S);ctx.lineTo(ox+6.5*S,oy+2.2*S);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ox+9*S,oy+3*S);ctx.lineTo(ox+9.5*S,oy+2.2*S);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ox+11*S,oy+2.8*S);ctx.lineTo(ox+11*S,oy+2*S);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ox+13*S,oy+3*S);ctx.lineTo(ox+12.5*S,oy+2.2*S);ctx.stroke();
+  }
 
   // Mouth
   const mouthC=fem?"#d07878":"#b86868";
@@ -747,7 +772,69 @@ function drawAvatars(){
   });
 }
 
-// ── GAME LOOP ──────────────────────────────────────────────────────────────
+// ── BANCOS ────────────────────────────────────────────────────────────────
+let benchState = {};
+let mySeat = null; // {benchId, seatIdx}
+
+// Definición visual de bancos (en coordenadas 800x450)
+const BENCH_DEFS = {
+  b1: {x:185, y:285, seats:[{x:200,y:300},{x:230,y:300},{x:260,y:300}]},
+  b2: {x:485, y:285, seats:[{x:500,y:300},{x:530,y:300},{x:560,y:300}]},
+  b3: {x:335, y:145, seats:[{x:350,y:160},{x:380,y:160},{x:410,y:160}]},
+};
+
+function drawBenchesOnBg(ctx,W,H){
+  Object.entries(BENCH_DEFS).forEach(([id,bd])=>{
+    const bx=(bd.x/800)*W, by=(bd.y/450)*H;
+    const sw=(90/800)*W, sh=(18/450)*H;
+    // Banco shadow
+    ctx.fillStyle="rgba(42,26,8,0.15)";ctx.fillRect(bx+2,by+sh+2,sw,6);
+    // Asiento
+    ctx.fillStyle=C.f4;ctx.fillRect(bx,by,sw,sh);
+    ctx.fillStyle=C.f2;ctx.fillRect(bx,by+sh,sw,8);
+    ctx.strokeStyle=C.tr2;ctx.lineWidth=1.2;ctx.strokeRect(bx,by,sw,sh+8);
+    // Patas
+    ctx.fillStyle=C.tr1;
+    ctx.fillRect(bx+4,by+sh+6,(6/800)*W,(10/450)*H);
+    ctx.fillRect(bx+sw-10,by+sh+6,(6/800)*W,(10/450)*H);
+    // Asientos indicadores
+    bd.seats.forEach((seat,i)=>{
+      const sx=(seat.x/800)*W, sy=(seat.y/450)*H;
+      const occ=benchState[id]?.occupied[i];
+      ctx.fillStyle=occ?"rgba(200,160,120,0.5)":"rgba(255,255,255,0.35)";
+      ctx.beginPath();ctx.ellipse(sx,sy,8,4,0,0,Math.PI*2);ctx.fill();
+    });
+  });
+}
+
+function handleBenchClick(ex,ey,W,H){
+  if(currentRoom!=="lobby")return false;
+  for(const[id,bd] of Object.entries(BENCH_DEFS)){
+    for(let i=0;i<bd.seats.length;i++){
+      const seat=bd.seats[i];
+      const sx=(seat.x/800)*W, sy=(seat.y/450)*H;
+      if(Math.abs(ex-sx)<18&&Math.abs(ey-sy)<18){
+        // Si ya estoy sentado aquí, me levanto
+        if(mySeat&&mySeat.benchId===id&&mySeat.seatIdx===i){
+          socket.emit("stand");mySeat=null;
+        } else {
+          socket.emit("sit",{benchId:id,seatIdx:i});
+          mySeat={benchId:id,seatIdx:i};
+        }
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+socket.on("bench_update",({benches})=>{
+  benchState=benches;
+  if(currentRoom==="lobby")drawBg();
+});
+socket.on("move_to",({x,y})=>{
+  if(me)socket.emit("move",{x,y});
+});
 function gameLoop(){
   animTick++;
   tickMovement();
@@ -763,7 +850,13 @@ function typingInInput(e){const t=e.target;return t&&(t.tagName==="INPUT"||t.tag
 document.getElementById("world").addEventListener("click",e=>{
   if(e.target.closest("#arcade-menu")||e.target.closest("#game-overlay")||e.target.closest("#pomodoro-wrap")||e.target.closest("#music-bar")||e.target.closest("#avatar-modal"))return;
   const rect=document.getElementById("world-wrap").getBoundingClientRect();
-  socket.emit("move",{x:((e.clientX-rect.left)/rect.width)*800,y:((e.clientY-rect.top)/rect.height)*450});
+  const ex=e.clientX-rect.left, ey=e.clientY-rect.top;
+  const W=rect.width, H=rect.height;
+  // Check bench click first
+  if(handleBenchClick(ex,ey,W,H))return;
+  // If sitting, stand up on any other click
+  if(mySeat){socket.emit("stand");mySeat=null;}
+  socket.emit("move",{x:(ex/W)*800,y:(ey/H)*450});
 });
 document.getElementById("world").addEventListener("touchend",e=>{
   if(e.target.closest("#arcade-menu")||e.target.closest("#game-overlay")||e.target.closest("#pomodoro-wrap")||e.target.closest("#music-bar")||e.target.closest("#avatar-modal"))return;
@@ -890,28 +983,11 @@ let musicPlaying=false,musicMode=null,ytPlayer=null,ytReady=false;
 const ytScript=document.createElement("script");ytScript.src="https://www.youtube.com/iframe_api";document.head.appendChild(ytScript);
 window.onYouTubeIframeAPIReady=()=>{ytReady=true;};
 function showMusicBar(show){if(show)musicBar.classList.add("visible");else musicBar.classList.remove("visible");}
-// Streams lofi confiables con fallback
-const LOFI_STREAMS = [
-  "https://streams.ilovemusic.de/iloveradio17.mp3", // Lofi Hip Hop
-  "https://usa9.fastcast4u.com/proxy/jamz?mp=/1",
-  "https://streaming.live365.com/a05450"
-];
-let lofiStreamIdx = 0;
+// Lofi via YouTube por defecto (más confiable que streams de radio)
+const DEFAULT_LOFI_YT = "https://www.youtube.com/watch?v=jfKfPfyJRdk"; // lofi girl 24/7
 function loadDefaultLofi(){
   if(musicMode)return;
-  tryLofiStream(0);
-}
-function tryLofiStream(idx){
-  if(idx>=LOFI_STREAMS.length){musicTitle.textContent="⚠ Sin stream disponible — cargá un link";return;}
-  stopAll();musicMode="audio";
-  audioPlayer.src=LOFI_STREAMS[idx];
-  audioPlayer.volume=parseFloat(volSlider.value);
-  audioPlayer.loop=true;
-  audioPlayer.play().then(()=>{
-    musicPlaying=true;mcPlay.textContent="⏸";musicTitle.textContent="🎶 Lofi Hip-Hop";
-  }).catch(()=>{
-    setTimeout(()=>tryLofiStream(idx+1),500);
-  });
+  loadYouTube(DEFAULT_LOFI_YT);
 }function setAudioSrc(src,label){stopAll();musicMode="audio";audioPlayer.src=src;audioPlayer.volume=parseFloat(volSlider.value);audioPlayer.loop=true;audioPlayer.play().then(()=>{musicPlaying=true;mcPlay.textContent="⏸";musicTitle.textContent=label||src;}).catch(()=>{musicTitle.textContent="⚠ No se pudo reproducir";});}
 function loadYouTube(raw){
   const m=raw.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
@@ -990,7 +1066,11 @@ socket.on("room_joined",({room,players:ps})=>{
   handleMusicForRoom(room);
 });
 socket.on("chat",m=>addMsg(m));
-socket.on("pomodoro_state",({running,seconds})=>{const m=Math.floor(seconds/60).toString().padStart(2,"0"),s=(seconds%60).toString().padStart(2,"0");document.getElementById("pom-time").textContent=`${m}:${s}`;document.getElementById("pom-label").textContent=running?"⏱ En curso":"Pomodoro compartido";});
+socket.on("pomodoro_state",({running,seconds})=>{
+  const m=Math.floor(seconds/60).toString().padStart(2,"0"),s=(seconds%60).toString().padStart(2,"0");
+  document.getElementById("pom-time").textContent=`${m}:${s}`;
+  document.getElementById("pom-label").textContent=running?"⏱ En curso":"Compartido";
+});
 socket.on("pomodoro_done",()=>toast("🍅 ¡Pomodoro terminado!"));
 socket.on("avatar_updated",({id,avatarData})=>{if(players[id])players[id].avatarData=avatarData;});
 

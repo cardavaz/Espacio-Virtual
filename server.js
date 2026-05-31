@@ -22,6 +22,17 @@ const rooms = {
 const AVATARS = ["🐱","🐶","🦊","🐸","🐼","🦁","🐧","🐺"];
 let avatarIdx = 0;
 
+// Bancos en lobby — 3 bancos x 3 asientos
+const benches = {
+  b1: {seats: [{x:200,y:300},{x:230,y:300},{x:260,y:300}], occupied: [null,null,null]},
+  b2: {seats: [{x:500,y:300},{x:530,y:300},{x:560,y:300}], occupied: [null,null,null]},
+  b3: {seats: [{x:350,y:160},{x:380,y:160},{x:410,y:160}], occupied: [null,null,null]},
+};
+
+function freeBenchSeats(playerId){
+  Object.values(benches).forEach(b=>b.occupied=b.occupied.map(o=>o===playerId?null:o));
+}
+
 io.on("connection", (socket) => {
   let player = {
     id: socket.id,
@@ -38,6 +49,29 @@ io.on("connection", (socket) => {
   socket.join("lobby");
   socket.emit("init", { player, rooms: serializeRooms() });
   io.to("lobby").emit("room_update", { room: "lobby", players: Object.values(rooms.lobby.players) });
+
+  // Sentarse en banco
+  socket.on("sit", ({benchId, seatIdx}) => {
+    const bench = benches[benchId];
+    if(!bench || seatIdx<0 || seatIdx>2) return;
+    if(bench.occupied[seatIdx] && bench.occupied[seatIdx] !== socket.id) return; // ocupado
+    freeBenchSeats(socket.id); // liberar asiento previo
+    bench.occupied[seatIdx] = socket.id;
+    const seat = bench.seats[seatIdx];
+    player.x = seat.x; player.y = seat.y;
+    player.sitting = true;
+    updatePlayerInRoom();
+    io.to("lobby").emit("bench_update", {benches: serializeBenches()});
+    socket.emit("move_to", {x: seat.x, y: seat.y});
+  });
+
+  // Levantarse
+  socket.on("stand", () => {
+    freeBenchSeats(socket.id);
+    player.sitting = false;
+    updatePlayerInRoom();
+    io.to("lobby").emit("bench_update", {benches: serializeBenches()});
+  });
 
   // Avatar
   socket.on("update_avatar", (avatarData) => {
@@ -142,9 +176,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    freeBenchSeats(socket.id);
     delete rooms[player.room].players[socket.id];
     io.to(player.room).emit("room_update", { room: player.room, players: Object.values(rooms[player.room].players) });
     io.emit("room_count", { room: player.room, count: Object.keys(rooms[player.room].players).length });
+    if(player.room === "lobby") io.to("lobby").emit("bench_update", {benches: serializeBenches()});
   });
 
   function updatePlayerInRoom() {
@@ -155,6 +191,10 @@ io.on("connection", (socket) => {
     });
   }
 });
+
+function serializeBenches(){
+  return Object.fromEntries(Object.entries(benches).map(([id,b])=>[id,{seats:b.seats,occupied:b.occupied}]));
+}
 
 function serializeRooms() {
   return Object.fromEntries(
