@@ -64,8 +64,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .cdot{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s}
 .cdot.sel{border-color:var(--accent);transform:scale(1.2)}
 #avatar-save{width:100%;background:var(--accent2);border:none;color:#fff;padding:9px;border-radius:10px;cursor:pointer;font-size:14px;margin-top:14px;font-weight:700}
-#arcade-menu{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:20px 28px;text-align:center;min-width:260px;box-shadow:0 8px 32px rgba(74,55,40,.2)}
-#arcade-menu h2{color:var(--accent);font-size:16px;margin-bottom:14px;font-weight:700}
+#arcade-menu{display:none;position:absolute;top:50%;right:12px;transform:translateY(-50%);z-index:10;background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:16px 18px;text-align:left;min-width:200px;box-shadow:0 4px 20px rgba(74,55,40,.12)}
+#arcade-menu h2{color:var(--accent);font-size:14px;margin-bottom:10px;font-weight:700;text-align:center}
 .game-btn{display:block;width:100%;background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:10px 16px;border-radius:10px;cursor:pointer;font-size:13px;margin-bottom:8px;text-align:left;transition:all .2s;font-weight:600}
 .game-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
 .game-btn span{margin-right:8px}
@@ -890,10 +890,64 @@ let musicPlaying=false,musicMode=null,ytPlayer=null,ytReady=false;
 const ytScript=document.createElement("script");ytScript.src="https://www.youtube.com/iframe_api";document.head.appendChild(ytScript);
 window.onYouTubeIframeAPIReady=()=>{ytReady=true;};
 function showMusicBar(show){if(show)musicBar.classList.add("visible");else musicBar.classList.remove("visible");}
-function loadDefaultLofi(){if(musicMode)return;setAudioSrc(DEFAULT_LOFI,"🎶 Lofi Hip-Hop 24/7");}
-function setAudioSrc(src,label){stopAll();musicMode="audio";audioPlayer.src=src;audioPlayer.volume=parseFloat(volSlider.value);audioPlayer.loop=true;audioPlayer.play().then(()=>{musicPlaying=true;mcPlay.textContent="⏸";musicTitle.textContent=label||src;}).catch(()=>{musicTitle.textContent="⚠ No se pudo reproducir";});}
-function loadYouTube(raw){const m=raw.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})/);if(!m){toast("URL no reconocida");return;}stopAll();musicMode="youtube";musicTitle.textContent="Cargando...";const cid="yt-player-div";let div=document.getElementById(cid);if(!div){div=document.createElement("div");div.id=cid;div.style.display="none";document.body.appendChild(div);}if(ytPlayer){ytPlayer.destroy();ytPlayer=null;}const tryCreate=()=>{ytPlayer=new YT.Player(cid,{height:"0",width:"0",videoId:m[1],playerVars:{autoplay:1,loop:1,playlist:m[1]},events:{onReady:(e)=>{e.target.setVolume(parseFloat(volSlider.value)*100);e.target.playVideo();musicPlaying=true;mcPlay.textContent="⏸";musicTitle.textContent="▶ YouTube";},onError:()=>{musicTitle.textContent="⚠ Error YouTube";}}});};if(ytReady)tryCreate();else{const t=setInterval(()=>{if(ytReady){clearInterval(t);tryCreate();}},200);};}
-function stopAll(){if(audioPlayer){audioPlayer.pause();audioPlayer.src="";}if(ytPlayer){try{ytPlayer.stopVideo();ytPlayer.destroy();}catch(e){}ytPlayer=null;}musicPlaying=false;mcPlay.textContent="▶";musicMode=null;}
+// Streams lofi confiables con fallback
+const LOFI_STREAMS = [
+  "https://streams.ilovemusic.de/iloveradio17.mp3", // Lofi Hip Hop
+  "https://usa9.fastcast4u.com/proxy/jamz?mp=/1",
+  "https://streaming.live365.com/a05450"
+];
+let lofiStreamIdx = 0;
+function loadDefaultLofi(){
+  if(musicMode)return;
+  tryLofiStream(0);
+}
+function tryLofiStream(idx){
+  if(idx>=LOFI_STREAMS.length){musicTitle.textContent="⚠ Sin stream disponible — cargá un link";return;}
+  stopAll();musicMode="audio";
+  audioPlayer.src=LOFI_STREAMS[idx];
+  audioPlayer.volume=parseFloat(volSlider.value);
+  audioPlayer.loop=true;
+  audioPlayer.play().then(()=>{
+    musicPlaying=true;mcPlay.textContent="⏸";musicTitle.textContent="🎶 Lofi Hip-Hop";
+  }).catch(()=>{
+    setTimeout(()=>tryLofiStream(idx+1),500);
+  });
+}function setAudioSrc(src,label){stopAll();musicMode="audio";audioPlayer.src=src;audioPlayer.volume=parseFloat(volSlider.value);audioPlayer.loop=true;audioPlayer.play().then(()=>{musicPlaying=true;mcPlay.textContent="⏸";musicTitle.textContent=label||src;}).catch(()=>{musicTitle.textContent="⚠ No se pudo reproducir";});}
+function loadYouTube(raw){
+  const m=raw.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})/);
+  if(!m){toast("URL no reconocida");return;}
+  stopAll();musicMode="youtube";
+  musicTitle.textContent="Cargando YouTube...";
+  const cid="yt-player-div";
+  let div=document.getElementById(cid);
+  if(!div){div=document.createElement("div");div.id=cid;div.style.cssText="position:fixed;bottom:0;right:0;width:1px;height:1px;opacity:0;pointer-events:none";document.body.appendChild(div);}
+  if(ytPlayer){ytPlayer.destroy();ytPlayer=null;}
+  const tryCreate=()=>{
+    ytPlayer=new YT.Player(cid,{
+      height:"1",width:"1",videoId:m[1],
+      playerVars:{autoplay:1,loop:1,playlist:m[1],origin:window.location.origin},
+      events:{
+        onReady:(e)=>{
+          e.target.setVolume(parseFloat(volSlider.value)*100);
+          e.target.playVideo();
+          musicPlaying=true;mcPlay.textContent="⏸";
+          musicTitle.textContent="▶ YouTube";
+        },
+        onStateChange:(e)=>{
+          // Si YouTube bloquea (estado -1 o 5 sin reproducir)
+          if(e.data===YT.PlayerState.CUED){
+            musicTitle.textContent="⚠ YouTube bloqueó este video — probá con uno más corto";
+          }
+        },
+        onError:(e)=>{
+          const msgs={2:"URL inválida",5:"HTML5 no soportado",100:"Video no encontrado",101:"No permitido embeber",150:"No permitido embeber"};
+          musicTitle.textContent="⚠ "+(msgs[e.data]||"Error YouTube — probá con un video más corto");
+        }
+      }
+    });
+  };
+  if(ytReady)tryCreate();else{const t=setInterval(()=>{if(ytReady){clearInterval(t);tryCreate();}},200);}
+}function stopAll(){if(audioPlayer){audioPlayer.pause();audioPlayer.src="";}if(ytPlayer){try{ytPlayer.stopVideo();ytPlayer.destroy();}catch(e){}ytPlayer=null;}musicPlaying=false;mcPlay.textContent="▶";musicMode=null;}
 mcPlay.addEventListener("click",()=>{if(!musicMode){loadDefaultLofi();return;}if(musicMode==="audio"){if(musicPlaying){audioPlayer.pause();musicPlaying=false;mcPlay.textContent="▶";}else{audioPlayer.play();musicPlaying=true;mcPlay.textContent="⏸";}}if(musicMode==="youtube"&&ytPlayer){try{if(musicPlaying){ytPlayer.pauseVideo();musicPlaying=false;mcPlay.textContent="▶";}else{ytPlayer.playVideo();musicPlaying=true;mcPlay.textContent="⏸";}}catch(e){}}});
 volSlider.addEventListener("input",()=>{const v=parseFloat(volSlider.value);if(audioPlayer)audioPlayer.volume=v;if(ytPlayer){try{ytPlayer.setVolume(v*100);}catch(e){}}});
 document.getElementById("music-load-btn").addEventListener("click",()=>{const val=musicUrl.value.trim();if(!val)return;const m=val.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})/);if(m)loadYouTube(val);else setAudioSrc(val,val.split("/").pop()||val);musicUrl.value="";});

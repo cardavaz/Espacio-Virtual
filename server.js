@@ -71,10 +71,13 @@ io.on("connection", (socket) => {
     io.emit("room_count", { room: oldRoom, count: Object.keys(rooms[oldRoom].players).length });
     io.to(oldRoom).emit("room_update", { room: oldRoom, players: Object.values(rooms[oldRoom].players) });
 
-    // Entrar a sala nueva
+    // Entrar a sala nueva — mantener posición
     player.room = roomId;
-    player.x = 200 + Math.random() * 200;
-    player.y = 150 + Math.random() * 100;
+    // Solo resetear posición si estaba fuera de los límites
+    if(player.x < 20 || player.x > 780 || player.y < 20 || player.y > 430){
+      player.x = 300 + Math.random() * 200;
+      player.y = 150 + Math.random() * 150;
+    }
     rooms[roomId].players[socket.id] = player;
     socket.join(roomId);
     socket.emit("room_joined", { room: roomId, players: Object.values(rooms[roomId].players) });
