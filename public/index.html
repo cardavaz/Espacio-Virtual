@@ -195,6 +195,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
         <input type="file" id="music-file-input" accept="audio/*">
       </div>
     </div>
+    <div id="emote-picker">
+      <span class="emote-opt" data-emote="😊">😊</span>
+      <span class="emote-opt" data-emote="😐">😐</span>
+      <span class="emote-opt" data-emote="😢">😢</span>
+    </div>
     <audio id="audio-player" loop></audio>
   </div>
   <div id="sidebar">
@@ -696,6 +701,20 @@ function typingInInput(e){const t=e.target;return t&&(t.tagName==="INPUT"||t.tag
 function handleWorldClick(ex, ey){
   const rect=document.getElementById("world-wrap").getBoundingClientRect();
   const W=rect.width, H=rect.height;
+
+  // ¿Click sobre mi propio avatar?
+  if(me && players[socket.id]){
+    const p = players[socket.id];
+    const vp = getVP(p.id, p.x, p.y);
+    const ax = (vp.x/800)*W;
+    const ay = (vp.y/450)*H;
+    const S = 2.5;
+    if(Math.abs(ex-ax)<14*S && Math.abs(ey-ay)<20*S){
+      showEmotePicker(ex, ey);
+      return;
+    }
+  }
+
   if(handleBenchClick(ex,ey,W,H))return;
   if(mySeat){socket.emit("stand");mySeat=null;}
   socket.emit("move",{x:(ex/W)*800,y:(ey/H)*450});
@@ -942,8 +961,92 @@ socket.on("pomodoro_state",({running,seconds})=>{
 socket.on("pomodoro_done",()=>toast("🍅 ¡Pomodoro terminado!"));
 socket.on("avatar_updated",({id,avatarData})=>{if(players[id])players[id].avatarData=avatarData;});
 
-function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.opacity="1";setTimeout(()=>t.style.opacity="0",3000);}
-window.addEventListener("resize",()=>{resizeCanvases();drawBg();});
+// ── EMOTES ────────────────────────────────────────────────────────────────
+const emotePicker=document.getElementById("emote-picker");
+let activeEmotes={};
+const EMOTE_DUR=180;
+
+document.querySelectorAll(".emote-opt").forEach(btn=>{
+  btn.addEventListener("click",e=>{
+    e.stopPropagation();
+    const emote=btn.dataset.emote;
+    emotePicker.classList.remove("visible");
+    socket.emit("emote",emote);
+    activeEmotes[socket.id]={emote,tick:animTick};
+  });
+});
+document.addEventListener("click",e=>{
+  if(!e.target.closest("#emote-picker"))emotePicker.classList.remove("visible");
+});
+socket.on("emote",({id,emote})=>{activeEmotes[id]={emote,tick:animTick};});
+
+function showEmotePicker(sx,sy){
+  emotePicker.classList.add("visible");
+  const pw=130,wrap=document.getElementById("world-wrap").getBoundingClientRect();
+  emotePicker.style.left=Math.max(4,Math.min(wrap.width-pw-4,sx-pw/2))+"px";
+  emotePicker.style.top=Math.max(4,sy-50)+"px";
+}
+
+function drawEmotes(W,H){
+  Object.values(players).forEach(p=>{
+    const ae=activeEmotes[p.id];if(!ae)return;
+    const age=animTick-ae.tick;
+    if(age>EMOTE_DUR){delete activeEmotes[p.id];return;}
+    const vp=getVP(p.id,p.x,p.y);
+    const sx=(vp.x/800)*W, sy=(vp.y/450)*H;
+    const floatY=(age/EMOTE_DUR)*20;
+    const alpha=age>EMOTE_DUR*.7?1-(age-EMOTE_DUR*.7)/(EMOTE_DUR*.3):1;
+    const scale=age<8?.5+(age/8)*.5:1;
+    avCtx.save();
+    avCtx.globalAlpha=alpha;
+    avCtx.font="20px serif";
+    avCtx.textAlign="center";
+    avCtx.translate(sx,sy-65-floatY);
+    avCtx.scale(scale,scale);
+    avCtx.fillText(ae.emote,0,0);
+    avCtx.restore();
+  });
+}
+
+// Parchear gameLoop para incluir emotes
+const _origGameLoop=gameLoop;
+(function patchLoop(){
+  cancelAnimationFrame(window._loopId);
+  function loop(){
+    animTick++;tickMovement();
+    if(animTick%4===0)drawBg();
+    drawAvatars();
+    drawEmotes(avCanvas.width,avCanvas.height);
+    window._loopId=requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+// Click en propio avatar abre picker
+const _origHandleClick=handleWorldClick;
+window.handleWorldClick=function(ex,ey){
+  const rect=document.getElementById("world-wrap").getBoundingClientRect();
+  const W=rect.width,H=rect.height;
+  if(players[socket.id]){
+    const p=players[socket.id];
+    const vp=getVP(p.id,p.x,p.y);
+    const ax=(vp.x/800)*W, ay=(vp.y/450)*H;
+    if(Math.abs(ex-ax)<30&&Math.abs(ey-ay)<40){
+      showEmotePicker(ex,ey);return;
+    }
+  }
+  _origHandleClick(ex,ey);
+};
+// Redirigir los event listeners al nuevo handler
+document.getElementById("world").removeEventListener("click",document.getElementById("world")._clickHandler);
+document.getElementById("world")._clickHandler=e=>{
+  if(e.target.closest("#arcade-menu")||e.target.closest("#game-overlay")||e.target.closest("#pomodoro-wrap")||e.target.closest("#music-bar")||e.target.closest("#avatar-modal"))return;
+  const rect=e.currentTarget.getBoundingClientRect();
+  window.handleWorldClick(e.clientX-rect.left,e.clientY-rect.top);
+};
+document.getElementById("world").addEventListener("click",document.getElementById("world")._clickHandler);
+
+window.toast=function(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.opacity="1";setTimeout(()=>t.style.opacity="0",3000);};
 resizeCanvases();
 handleMusicForRoom("lobby");
 drawBigPreview();
