@@ -680,18 +680,24 @@ function handleWorldClick(ex,ey){
   const rect=document.getElementById("world-wrap").getBoundingClientRect();
   const W=rect.width,H=rect.height;
 
-  // Click en nametag del propio avatar → emotes
+  // PRIMERO: detectar click en nametag del propio avatar
   if(players[socket.id]){
     const p=players[socket.id];
     const vp=getVP(p.id,p.x,p.y);
     const S=2.5;
-    const ax=(vp.x/800)*W,ay=(vp.y/450)*H;
-    // Nametag está ~18*S px arriba del centro del avatar
-    const tagCY=ay-18*S-7;
-    const tagW=50;
-    if(Math.abs(ex-ax)<tagW&&Math.abs(ey-tagCY)<14){
-      showEmotePicker(ex,ey);
-      return;
+    const ax=(vp.x/800)*W;
+    const ay=(vp.y/450)*H;
+    // El nametag está justo arriba de la cabeza
+    // drawChibi dibuja el avatar con oy = sy-18*S
+    // El nametag se dibuja en ty = oy-4, altura 13px
+    const avatarTop = ay - 18*S;
+    const tagCX = ax;
+    const tagCY = avatarTop - 10; // centro vertical del nametag
+    const tagHitW = 60; // área de hit generosa
+    const tagHitH = 24;
+    if(Math.abs(ex - tagCX) < tagHitW && Math.abs(ey - tagCY) < tagHitH){
+      showEmotePicker(ex, ey);
+      return; // NO moverse
     }
   }
 
