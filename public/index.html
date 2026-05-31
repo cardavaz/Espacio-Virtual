@@ -698,7 +698,8 @@ function handleWorldClick(ex,ey){
     }
   }
 
-  if(handleBenchClick(ex,ey,W,H))return;
+  if(players[socket.id]){const p=players[socket.id];const vp=getVP(p.id,p.x,p.y);const S=2.5;const ax=(vp.x/800)*W,ay=(vp.y/450)*H;if(ex>ax-10*S&&ex<ax+10*S&&ey>ay-18*S-20&&ey<ay+6*S){showEmotePicker(ex,ey);return;}}
+if(handleBenchClick(ex,ey,W,H))return;
   if(mySeat){socket.emit("stand");mySeat=null;}
   socket.emit("move",{x:(ex/W)*800,y:(ey/H)*450});
 }
