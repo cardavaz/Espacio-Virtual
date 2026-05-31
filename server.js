@@ -25,7 +25,7 @@ let avatarIdx = 0;
 io.on("connection", (socket) => {
   let player = {
     id: socket.id,
-    name: `Player${Math.floor(Math.random()*9000)+1000}`,
+    name: `Jugador${Math.floor(Math.random()*9000)+1000}`,
     avatar: AVATARS[avatarIdx++ % AVATARS.length],
     room: "lobby",
     x: 200 + Math.random() * 200,
@@ -55,12 +55,17 @@ io.on("connection", (socket) => {
 
   // Cambiar de sala
   socket.on("join_room", (roomId) => {
-    if (!rooms[roomId]) return;
+    if (!rooms[roomId] || roomId === player.room) return;
     const oldRoom = player.room;
+
+    // Sacar de sala vieja
     delete rooms[oldRoom].players[socket.id];
     socket.leave(oldRoom);
+    // Notificar a TODOS (incluyendo el jugador) el conteo actualizado de la sala vieja
+    io.emit("room_count", { room: oldRoom, count: Object.keys(rooms[oldRoom].players).length });
     io.to(oldRoom).emit("room_update", { room: oldRoom, players: Object.values(rooms[oldRoom].players) });
 
+    // Entrar a sala nueva
     player.room = roomId;
     player.x = 200 + Math.random() * 200;
     player.y = 150 + Math.random() * 100;
@@ -68,6 +73,7 @@ io.on("connection", (socket) => {
     socket.join(roomId);
     socket.emit("room_joined", { room: roomId, players: Object.values(rooms[roomId].players) });
     io.to(roomId).emit("room_update", { room: roomId, players: Object.values(rooms[roomId].players) });
+    io.emit("room_count", { room: roomId, count: Object.keys(rooms[roomId].players).length });
 
     // Al entrar al estudio: estado del pomodoro
     if (roomId === "study") {
@@ -129,6 +135,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     delete rooms[player.room].players[socket.id];
     io.to(player.room).emit("room_update", { room: player.room, players: Object.values(rooms[player.room].players) });
+    io.emit("room_count", { room: player.room, count: Object.keys(rooms[player.room].players).length });
   });
 
   function updatePlayerInRoom() {

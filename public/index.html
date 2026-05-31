@@ -115,9 +115,9 @@ body.in-lobby  #canvas-bg{background:radial-gradient(ellipse at 50% 50%,#1a1a2e 
 </head>
 <body class="in-lobby">
 <div id="header">
-  <span id="my-avatar">🐱</span>
   <h1>🌐 Espacio Virtual</h1>
   <input id="my-name" placeholder="Tu nombre" maxlength="20">
+  <button id="edit-avatar-btn" onclick="openAvatarEditor()" style="background:#0f3460;border:1px solid #e94560;color:#eee;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px">✏️ Editar Avatar</button>
   <div id="room-btns"></div>
   <span id="online-count">0 online</span>
 </div>
@@ -674,8 +674,12 @@ function handleMusicForRoom(room){if(room==="lobby"){showMusicBar(true);setTimeo
 socket.on("init",({player,rooms})=>{
   me=player;
   document.getElementById("my-name").value=player.name;
-  document.getElementById("my-avatar").textContent=player.avatar;
   buildRoomBtns(rooms);
+});
+
+socket.on("room_count",({room,count})=>{
+  const btn=document.getElementById("rbtn_"+room);
+  if(btn){const m=btn.textContent.match(/^(.*)\s\(\d+\)$/);if(m)btn.textContent=m[1]+` (${count})`;}
 });
 socket.on("room_update",({room,players:ps})=>{
   if(room===currentRoom)renderPlayers(ps);
