@@ -117,10 +117,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 #music-file-btn{background:var(--bg);border:1.5px solid var(--border);color:var(--text2);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px}
 #music-file-input{display:none}
 /* Emote picker */
-#emote-picker{display:none;position:absolute;z-index:30;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:6px 8px;box-shadow:0 4px 16px rgba(74,55,40,.18);gap:6px;flex-direction:row}
+#emote-picker{display:none;position:absolute;z-index:40;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:6px 8px;box-shadow:0 4px 16px rgba(74,55,40,.18);flex-direction:row;gap:6px}
 #emote-picker.visible{display:flex}
-.emote-opt{font-size:22px;cursor:pointer;padding:4px;border-radius:8px;transition:transform .15s,background .15s;line-height:1}
-.emote-opt:hover{background:var(--bg);transform:scale(1.25)}left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:7px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;font-weight:600}
+.emote-opt{font-size:24px;cursor:pointer;padding:4px;border-radius:8px;transition:transform .15s,background .15s;line-height:1}
+.emote-opt:hover{background:var(--bg);transform:scale(1.3)}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:7px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;font-weight:600}
 </style>
 </head>
 <body>
@@ -155,6 +156,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
         </div>
         <button id="avatar-save" onclick="saveAvatar()">Guardar</button>
       </div>
+    </div>
+    <div id="emote-picker">
+      <span class="emote-opt" data-emote="😊">😊</span>
+      <span class="emote-opt" data-emote="😐">😐</span>
+      <span class="emote-opt" data-emote="😢">😢</span>
     </div>
     <div id="arcade-menu">
       <h2>🕹️ Arcade</h2>
@@ -195,11 +201,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
         <input type="file" id="music-file-input" accept="audio/*">
       </div>
     </div>
-    <div id="emote-picker">
-      <span class="emote-opt" data-emote="😊">😊</span>
-      <span class="emote-opt" data-emote="😐">😐</span>
-      <span class="emote-opt" data-emote="😢">😢</span>
-    </div>
     <audio id="audio-player" loop></audio>
   </div>
   <div id="sidebar">
@@ -211,19 +212,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     </div>
   </div>
 </div>
-    <div id="emote-picker">
-      <span class="emote-opt" data-emote="😊">😊</span>
-      <span class="emote-opt" data-emote="😐">😐</span>
-      <span class="emote-opt" data-emote="😢">😢</span>
-    </div>
-    <div id="toast"></div>
+<div id="toast"></div>
 <script>
-const socket = io();
-let me = null, currentRoom = "lobby", players = {};
-let animTick = 0;
+const socket=io();
+let me=null,currentRoom="lobby",players={};
+let animTick=0;
 
-// ── PALETA ────────────────────────────────────────────────────────────────
-const C = {
+const C={
   g1:"#92c57a",g2:"#84b86e",g3:"#a0d484",g4:"#78aa62",g5:"#6a9a54",
   p1:"#d4b88a",p2:"#c8a878",p3:"#e0c898",p4:"#b89868",
   w1:"#78c0dc",w2:"#68b0cc",w3:"#90d0ec",w4:"#58a0bc",
@@ -232,17 +227,14 @@ const C = {
   f1:"#c8a870",f2:"#b89860",f3:"#a88850",f4:"#d8b880",
   s1:"#b0a890",s2:"#a09880",s3:"#c0b8a0",
   fl1:"#f0a0a0",fl2:"#f0d880",fl3:"#a0c8f0",fl4:"#d0a0f0",fl5:"#a0f0a0",
-  r1:"#d08878",
-  wl1:"#ecdcc0",
-  sh:"rgba(42,26,8,0.18)",
-  dk:"#2a1a08",dk2:"#3a2a18",
+  r1:"#d08878",wl1:"#ecdcc0",
+  sh:"rgba(42,26,8,0.18)",dk:"#2a1a08",dk2:"#3a2a18",
 };
 
-// ── AVATAR ────────────────────────────────────────────────────────────────
-const SKINS  = ["#fde8c8","#f5cba7","#e8b888","#d4956a","#b87840","#8b5a28"];
-const HAIRS  = ["#2a1a08","#5a3010","#8a5820","#c8a030","#e8c060","#d06040","#c060a0","#dce0e8"];
-const SHIRTS = ["#d08888","#8898d8","#88c888","#d8c888","#b888d8","#d8a888","#88c8d8","#f0e8d8"];
-let myAvatar = {gender:"m",skin:1,hair:1,shirt:0};
+const SKINS =["#fde8c8","#f5cba7","#e8b888","#d4956a","#b87840","#8b5a28"];
+const HAIRS =["#2a1a08","#5a3010","#8a5820","#c8a030","#e8c060","#d06040","#c060a0","#dce0e8"];
+const SHIRTS=["#d08888","#8898d8","#88c888","#d8c888","#b888d8","#d8a888","#88c8d8","#f0e8d8"];
+let myAvatar={gender:"m",skin:1,hair:1,shirt:0};
 
 function makeColorRow(id,arr,key){
   const row=document.getElementById(id);
@@ -261,24 +253,20 @@ document.getElementById("edit-avatar-btn").onclick=openAvatarEditor;
 document.getElementById("avatar-modal").onclick=e=>{if(e.target===document.getElementById("avatar-modal"))document.getElementById("avatar-modal").classList.remove("open");};
 makeColorRow("ae-skin",SKINS,"skin");makeColorRow("ae-hair",HAIRS,"hair");makeColorRow("ae-shirt",SHIRTS,"shirt");
 
-// ── CHIBI AVATAR ──────────────────────────────────────────────────────────
 function rr(ctx,ox,oy,x,y,w,h,c,S){ctx.fillStyle=c;ctx.fillRect(ox+x*S,oy+y*S,w*S,h*S);}
 
 function drawChibi(ctx,ox,oy,av,name,isMe,frame,sitting){
-  frame=frame||0; sitting=sitting||false;
+  frame=frame||0;sitting=sitting||false;
   const skin=SKINS[av.skin]||SKINS[1];
   const hair=HAIRS[av.hair]||HAIRS[1];
   const shirt=SHIRTS[av.shirt]||SHIRTS[0];
   const fem=av.gender==="f";
-  const S=2.5;
-  const walk=frame%2;
+  const S=2.5,walk=frame%2;
   const R=(x,y,w,h,c)=>rr(ctx,ox,oy,x,y,w,h,c,S);
 
-  // Shadow
   ctx.fillStyle="rgba(42,26,8,0.18)";
   ctx.beginPath();ctx.ellipse(ox+8*S,oy+23*S,6*S,2*S,0,0,Math.PI*2);ctx.fill();
 
-  // Legs
   if(sitting){
     const legC=fem?skin:"#8090b0";
     R(3,17,5,3,legC);R(8,17,5,3,legC);
@@ -293,26 +281,19 @@ function drawChibi(ctx,ox,oy,av,name,isMe,frame,sitting){
     if(fem){R(3,16,10,5,shirt);R(2,19,12,3,shirt);}
   }
 
-  // Body
   R(3,9,10,9,shirt);
   ctx.fillStyle="rgba(42,26,8,0.08)";ctx.fillRect(ox+3*S,oy+15*S,10*S,3*S);
   ctx.strokeStyle="rgba(42,26,8,0.25)";ctx.lineWidth=.7;ctx.strokeRect(ox+3*S+.5,oy+9*S+.5,10*S-1,9*S-1);
 
-  // Arms
   const aS=walk?.8:-.8;
   R(1,10+aS,2,6,shirt);R(11,10-aS,2,6,shirt);
   R(1,15+aS,2,2,skin);R(11,15-aS,2,2,skin);
-
-  // Neck
   R(6,7,4,3,skin);
-
-  // Head
   R(1,0,14,9,skin);
   ctx.fillStyle="rgba(255,255,255,0.13)";ctx.fillRect(ox+3*S,oy+1*S,8*S,3*S);
   ctx.fillStyle="rgba(42,26,8,0.06)";ctx.fillRect(ox+1*S,oy+6*S,14*S,3*S);
   ctx.strokeStyle="rgba(42,26,8,0.25)";ctx.lineWidth=.7;ctx.strokeRect(ox+1*S+.5,oy+.5,14*S-1,9*S-1);
 
-  // Hair
   ctx.fillStyle=hair;
   ctx.fillRect(ox+1*S,oy,14*S,3*S);
   ctx.fillRect(ox+1*S,oy,2*S,7*S);
@@ -320,8 +301,7 @@ function drawChibi(ctx,ox,oy,av,name,isMe,frame,sitting){
   if(fem){ctx.fillRect(ox,oy+1*S,2*S,9*S);ctx.fillRect(ox+14*S,oy+1*S,2*S,9*S);}
   ctx.fillStyle="rgba(255,255,255,0.18)";ctx.fillRect(ox+4*S,oy+.5,4*S,S);
 
-  // Eyes
-  const eyeW="#f8f4f0", irisC=fem?"#9070b8":"#507098";
+  const eyeW="#f8f4f0",irisC=fem?"#9070b8":"#507098";
   R(3,3,4,4,eyeW);R(3.5,3.5,3,3,irisC);R(4.5,4.5,1.5,1.5,C.dk);
   ctx.fillStyle="rgba(255,255,255,0.85)";ctx.fillRect(ox+3.5*S,oy+3.5*S,S,S);
   ctx.strokeStyle="rgba(42,26,8,0.45)";ctx.lineWidth=.7;ctx.strokeRect(ox+3*S+.5,oy+3*S+.5,4*S-1,4*S-1);
@@ -335,20 +315,17 @@ function drawChibi(ctx,ox,oy,av,name,isMe,frame,sitting){
     });
   }
 
-  // Blush
   if(fem){
     ctx.fillStyle="rgba(240,160,160,0.28)";
     ctx.beginPath();ctx.ellipse(ox+3.5*S,oy+6*S,2*S,1.2*S,0,0,Math.PI*2);ctx.fill();
     ctx.beginPath();ctx.ellipse(ox+12.5*S,oy+6*S,2*S,1.2*S,0,0,Math.PI*2);ctx.fill();
   }
 
-  // Me ring
   if(isMe){
     ctx.strokeStyle="rgba(107,158,107,0.55)";ctx.lineWidth=1.8;
     ctx.beginPath();ctx.ellipse(ox+8*S,oy+24*S,8*S,2.5*S,0,0,Math.PI*2);ctx.stroke();
   }
 
-  // Nametag
   if(name){
     ctx.save();
     ctx.font="bold 9px 'Segoe UI',system-ui";ctx.textAlign="center";
@@ -369,7 +346,6 @@ function drawBigPreview(){
   drawChibi(ctx,8,16,myAvatar,"",false,0,false);
 }
 
-// ── WORLD ─────────────────────────────────────────────────────────────────
 const bgCanvas=document.getElementById("canvas-bg");
 const bgCtx=bgCanvas.getContext("2d");
 const avCanvas=document.getElementById("canvas-avatars");
@@ -468,114 +444,70 @@ function drawFountain(ctx,cx,cy,tick){
     ctx.beginPath();ctx.moveTo(cx+Math.cos(angle)*4,cy-22);
     ctx.quadraticCurveTo(cx+Math.cos(angle)*(jetLen*.7)+jitter,cy-28,cx+Math.cos(angle)*jetLen+jitter,cy+2);
     ctx.stroke();
-    ctx.fillStyle=`rgba(160,220,245,0.5)`;ctx.beginPath();ctx.arc(cx+Math.cos(angle)*jetLen+jitter,cy+2,1.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="rgba(160,220,245,0.5)";ctx.beginPath();ctx.arc(cx+Math.cos(angle)*jetLen+jitter,cy+2,1.5,0,Math.PI*2);ctx.fill();
   }
 }
 
 // ── BANCOS ────────────────────────────────────────────────────────────────
-let benchState = {};
-let mySeat = null;
+let benchState={},mySeat=null;
+const BENCH_POS=[{px:.20,py:.25},{px:.73,py:.25},{px:.20,py:.72},{px:.73,py:.72}];
+const BENCH_IDS=["b1","b2","b3","b4"];
 
-// Posiciones de bancos en porcentaje del canvas (0-1)
-// Cada banco tiene 3 asientos separados entre sí
-const BENCH_POS = [
-  {px:0.20, py:0.25},  // arriba-izq
-  {px:0.73, py:0.25},  // arriba-der
-  {px:0.20, py:0.72},  // abajo-izq
-  {px:0.73, py:0.72},  // abajo-der
-];
-const BENCH_IDS = ["b1","b2","b3","b4"];
-
-function getBenchSeats(W, H) {
-  // Retorna array de {benchId, seatIdx, px, py, sx, sy}
-  // px/py = píxeles en canvas, sx/sy = coordenadas servidor 0-800/0-450
-  const seats = [];
-  BENCH_POS.forEach((bp, bi) => {
-    const cx = bp.px * W;
-    const cy = bp.py * H;
-    const gapPx = W * 0.04; // separación entre asientos en px
-    for(let si = 0; si < 3; si++){
-      const px = cx + (si-1)*gapPx;
-      const py = cy;
-      seats.push({
-        benchId: BENCH_IDS[bi],
-        seatIdx: si,
-        px, py,
-        sx: (px/W)*800,
-        sy: (py/H)*450,
-      });
-    }
+function getBenchSeats(W,H){
+  return BENCH_POS.flatMap((bp,bi)=>{
+    const cx=bp.px*W,cy=bp.py*H,gapPx=W*.04;
+    return [0,1,2].map(si=>({
+      benchId:BENCH_IDS[bi],seatIdx:si,
+      px:cx+(si-1)*gapPx,py:cy,
+      sx:((cx+(si-1)*gapPx)/W)*800,sy:(cy/H)*450
+    }));
   });
-  return seats;
 }
 
-function drawBenchesOnBg(ctx, W, H){
-  BENCH_POS.forEach((bp, bi) => {
-    const cx = bp.px * W;
-    const cy = bp.py * H;
-    const sw = W * 0.11;
-    const sh = Math.max(12, H * 0.04);
-    const bx = cx - sw/2;
-    const by = cy - sh/2;
-
-    // Sombra
+function drawBenchesOnBg(ctx,W,H){
+  BENCH_POS.forEach((bp,bi)=>{
+    const cx=bp.px*W,cy=bp.py*H;
+    const sw=W*.11,sh=Math.max(12,H*.04);
+    const bx=cx-sw/2,by=cy-sh/2;
     ctx.fillStyle="rgba(42,26,8,0.13)";ctx.fillRect(bx+3,by+sh+2,sw,5);
-    // Respaldo
     ctx.fillStyle=C.f3;ctx.fillRect(bx,by-sh*.55,sw,sh*.55);
     ctx.strokeStyle=C.tr2;ctx.lineWidth=1;ctx.strokeRect(bx,by-sh*.55,sw,sh*.55);
-    // Asiento
     ctx.fillStyle=C.f4;ctx.fillRect(bx,by,sw,sh);
     ctx.fillStyle=C.f2;ctx.fillRect(bx,by+sh,sw,sh*.35);
     ctx.strokeStyle=C.tr2;ctx.lineWidth=1.2;ctx.strokeRect(bx,by,sw,sh*1.35);
-    // Highlight
     ctx.fillStyle="rgba(255,255,255,0.15)";ctx.fillRect(bx+3,by+2,sw-6,sh*.3);
-    // Patas
-    ctx.fillStyle=C.tr1;
     const legW=Math.max(4,sw*.06),legH=Math.max(6,H*.025);
-    ctx.fillRect(bx+sw*.08,by+sh*1.3,legW,legH);
-    ctx.fillRect(bx+sw*.86,by+sh*1.3,legW,legH);
-
-    // Indicadores de asientos
-    const gapPx = W * 0.04;
+    ctx.fillStyle=C.tr1;ctx.fillRect(bx+sw*.08,by+sh*1.3,legW,legH);ctx.fillRect(bx+sw*.86,by+sh*1.3,legW,legH);
+    const gapPx=W*.04;
     for(let si=0;si<3;si++){
-      const sx = cx + (si-1)*gapPx;
-      const sy = cy;
-      const id = BENCH_IDS[bi];
-      const occ = benchState[id]?.occupied?.[si];
-      ctx.fillStyle = occ ? "rgba(180,130,100,0.5)" : "rgba(255,255,255,0.35)";
-      ctx.beginPath();ctx.ellipse(sx,sy+sh*.3,gapPx*.35,sh*.28,0,0,Math.PI*2);ctx.fill();
+      const sx=cx+(si-1)*gapPx;
+      const occ=benchState[BENCH_IDS[bi]]?.occupied?.[si];
+      ctx.fillStyle=occ?"rgba(180,130,100,0.5)":"rgba(255,255,255,0.35)";
+      ctx.beginPath();ctx.ellipse(sx,cy+sh*.3,gapPx*.35,sh*.28,0,0,Math.PI*2);ctx.fill();
       ctx.strokeStyle="rgba(42,26,8,0.2)";ctx.lineWidth=.8;
-      ctx.beginPath();ctx.ellipse(sx,sy+sh*.3,gapPx*.35,sh*.28,0,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.ellipse(sx,cy+sh*.3,gapPx*.35,sh*.28,0,0,Math.PI*2);ctx.stroke();
     }
   });
 }
 
-function handleBenchClick(ex, ey, W, H){
-  if(currentRoom!=="lobby") return false;
-  const seats = getBenchSeats(W, H);
-  for(const seat of seats){
-    const hitW = W*0.04, hitH = H*0.06;
-    if(Math.abs(ex-seat.px)<hitW && Math.abs(ey-seat.py)<hitH){
-      if(mySeat && mySeat.benchId===seat.benchId && mySeat.seatIdx===seat.seatIdx){
-        socket.emit("stand"); mySeat=null;
-      } else {
-        socket.emit("sit",{benchId:seat.benchId, seatIdx:seat.seatIdx, x:seat.sx, y:seat.sy});
-        mySeat={benchId:seat.benchId, seatIdx:seat.seatIdx};
-      }
+function handleBenchClick(ex,ey,W,H){
+  if(currentRoom!=="lobby")return false;
+  for(const seat of getBenchSeats(W,H)){
+    if(Math.abs(ex-seat.px)<W*.04&&Math.abs(ey-seat.py)<H*.06){
+      if(mySeat&&mySeat.benchId===seat.benchId&&mySeat.seatIdx===seat.seatIdx){socket.emit("stand");mySeat=null;}
+      else{socket.emit("sit",{benchId:seat.benchId,seatIdx:seat.seatIdx,x:seat.sx,y:seat.sy});mySeat={benchId:seat.benchId,seatIdx:seat.seatIdx};}
       return true;
     }
   }
   return false;
 }
-
 socket.on("bench_update",({benches})=>{benchState=benches;if(currentRoom==="lobby")drawBg();});
 socket.on("move_to",({x,y})=>{socket.emit("move",{x,y});});
 
-// ── LOBBY ─────────────────────────────────────────────────────────────────
 function drawLobby(ctx,W,H){
   const cols=Math.ceil(W/TSIZE)+1,rows=Math.ceil(H/TSIZE)+1;
-  const CX=Math.round(W/2), CY=Math.round(H/2);
-  const cx=Math.floor(CX/TSIZE), cy=Math.floor(CY/TSIZE);
+  const CX=Math.round(W/2),CY=Math.round(H/2);
+  const cx=Math.floor(CX/TSIZE),cy=Math.floor(CY/TSIZE);
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)grassTile(ctx,c*TSIZE,r*TSIZE,(r*cols+c)*3);
   for(let c=0;c<cols;c++){pathTile(ctx,c*TSIZE,cy*TSIZE,c);pathTile(ctx,c*TSIZE,(cy+1)*TSIZE,c+1);}
   for(let r=0;r<rows;r++){pathTile(ctx,cx*TSIZE,r*TSIZE,r);pathTile(ctx,(cx+1)*TSIZE,r*TSIZE,r+1);}
@@ -678,10 +610,56 @@ function drawAvatars(){
     const vp=getVP(p.id,p.x,p.y);
     const sx=(vp.x/800)*W,sy=(vp.y/450)*H;
     const av=p.avatarData||{gender:"m",skin:1,hair:1,shirt:0};
-    const S=2.5;
-    const sitting=!!p.sitting;
-    const yOff=sitting?-8:0;
-    drawChibi(avCtx,sx-8*S,sy-24*S+yOff,av,p.name,p.id===socket.id,vp.frame,sitting);
+    const S=2.5,sitting=!!p.sitting;
+    const yOff=sitting?H*.02:0;
+    drawChibi(avCtx,sx-8*S,sy-18*S+yOff,av,p.name,p.id===socket.id,vp.frame,sitting);
+  });
+}
+
+// ── EMOTES ────────────────────────────────────────────────────────────────
+const emotePicker=document.getElementById("emote-picker");
+let activeEmotes={};
+const EMOTE_DUR=180;
+
+document.querySelectorAll(".emote-opt").forEach(btn=>{
+  btn.addEventListener("click",e=>{
+    e.stopPropagation();
+    const emote=btn.dataset.emote;
+    emotePicker.classList.remove("visible");
+    socket.emit("emote",emote);
+    activeEmotes[socket.id]={emote,tick:animTick};
+  });
+});
+document.addEventListener("click",e=>{
+  if(!e.target.closest("#emote-picker"))emotePicker.classList.remove("visible");
+});
+socket.on("emote",({id,emote})=>{activeEmotes[id]={emote,tick:animTick};});
+
+function showEmotePicker(sx,sy){
+  emotePicker.classList.add("visible");
+  const pw=130,wrap=document.getElementById("world-wrap").getBoundingClientRect();
+  emotePicker.style.left=Math.max(4,Math.min(wrap.width-pw-4,sx-pw/2))+"px";
+  emotePicker.style.top=Math.max(4,sy-55)+"px";
+}
+
+function drawEmotes(W,H){
+  Object.values(players).forEach(p=>{
+    const ae=activeEmotes[p.id];if(!ae)return;
+    const age=animTick-ae.tick;
+    if(age>EMOTE_DUR){delete activeEmotes[p.id];return;}
+    const vp=getVP(p.id,p.x,p.y);
+    const sx=(vp.x/800)*W,sy=(vp.y/450)*H;
+    const floatY=(age/EMOTE_DUR)*20;
+    const alpha=age>EMOTE_DUR*.7?1-(age-EMOTE_DUR*.7)/(EMOTE_DUR*.3):1;
+    const scale=age<8?.5+(age/8)*.5:1;
+    avCtx.save();
+    avCtx.globalAlpha=alpha;
+    avCtx.font="20px serif";
+    avCtx.textAlign="center";
+    avCtx.translate(sx,sy-80-floatY);
+    avCtx.scale(scale,scale);
+    avCtx.fillText(ae.emote,0,0);
+    avCtx.restore();
   });
 }
 
@@ -690,7 +668,7 @@ function gameLoop(){
   animTick++;tickMovement();
   if(animTick%4===0)drawBg();
   drawAvatars();
-  drawEmotes(avCanvas.width, avCanvas.height);
+  drawEmotes(avCanvas.width,avCanvas.height);
   requestAnimationFrame(gameLoop);
 }
 gameLoop();
@@ -698,19 +676,21 @@ gameLoop();
 // ── INPUT ─────────────────────────────────────────────────────────────────
 function typingInInput(e){const t=e.target;return t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA");}
 
-function handleWorldClick(ex, ey){
+function handleWorldClick(ex,ey){
   const rect=document.getElementById("world-wrap").getBoundingClientRect();
-  const W=rect.width, H=rect.height;
+  const W=rect.width,H=rect.height;
 
-  // ¿Click sobre mi propio avatar?
-  if(me && players[socket.id]){
-    const p = players[socket.id];
-    const vp = getVP(p.id, p.x, p.y);
-    const ax = (vp.x/800)*W;
-    const ay = (vp.y/450)*H;
-    const S = 2.5;
-    if(Math.abs(ex-ax)<14*S && Math.abs(ey-ay)<20*S){
-      showEmotePicker(ex, ey);
+  // Click en nametag del propio avatar → emotes
+  if(players[socket.id]){
+    const p=players[socket.id];
+    const vp=getVP(p.id,p.x,p.y);
+    const S=2.5;
+    const ax=(vp.x/800)*W,ay=(vp.y/450)*H;
+    // Nametag está ~18*S px arriba del centro del avatar
+    const tagCY=ay-18*S-7;
+    const tagW=50;
+    if(Math.abs(ex-ax)<tagW&&Math.abs(ey-tagCY)<14){
+      showEmotePicker(ex,ey);
       return;
     }
   }
@@ -721,15 +701,15 @@ function handleWorldClick(ex, ey){
 }
 
 document.getElementById("world").addEventListener("click",e=>{
-  if(e.target.closest("#arcade-menu")||e.target.closest("#game-overlay")||e.target.closest("#pomodoro-wrap")||e.target.closest("#music-bar")||e.target.closest("#avatar-modal"))return;
+  if(e.target.closest("#arcade-menu")||e.target.closest("#game-overlay")||e.target.closest("#pomodoro-wrap")||e.target.closest("#music-bar")||e.target.closest("#avatar-modal")||e.target.closest("#emote-picker"))return;
   const rect=e.currentTarget.getBoundingClientRect();
-  handleWorldClick(e.clientX-rect.left, e.clientY-rect.top);
+  handleWorldClick(e.clientX-rect.left,e.clientY-rect.top);
 });
 document.getElementById("world").addEventListener("touchend",e=>{
-  if(e.target.closest("#arcade-menu")||e.target.closest("#game-overlay")||e.target.closest("#pomodoro-wrap")||e.target.closest("#music-bar")||e.target.closest("#avatar-modal"))return;
+  if(e.target.closest("#arcade-menu")||e.target.closest("#game-overlay")||e.target.closest("#pomodoro-wrap")||e.target.closest("#music-bar")||e.target.closest("#avatar-modal")||e.target.closest("#emote-picker"))return;
   const t=e.changedTouches[0];
   const rect=e.currentTarget.getBoundingClientRect();
-  handleWorldClick(t.clientX-rect.left, t.clientY-rect.top);
+  handleWorldClick(t.clientX-rect.left,t.clientY-rect.top);
   e.preventDefault();
 },{passive:false});
 
@@ -849,10 +829,7 @@ const musicTitle=document.getElementById("music-title");
 const musicUrl=document.getElementById("music-url");
 const musicBar=document.getElementById("music-bar");
 let musicPlaying=false,musicMode=null,ytPlayer=null,ytReady=false;
-
-const ytScript=document.createElement("script");
-ytScript.src="https://www.youtube.com/iframe_api";
-document.head.appendChild(ytScript);
+const ytScript=document.createElement("script");ytScript.src="https://www.youtube.com/iframe_api";document.head.appendChild(ytScript);
 window.onYouTubeIframeAPIReady=()=>{ytReady=true;};
 
 function showMusicBar(show){if(show)musicBar.classList.add("visible");else musicBar.classList.remove("visible");}
@@ -893,13 +870,11 @@ function stopAll(){
   musicPlaying=false;mcPlay.textContent="▶";musicMode=null;
 }
 
-// Botón Iniciar Lofi — usa MP3 directo (sin restricciones CORS)
 const LOFI_MP3="https://cdn.pixabay.com/audio/2022/10/25/audio_946b827612.mp3";
 document.getElementById("music-start-btn").addEventListener("click",()=>{
   document.getElementById("music-start-btn").style.display="none";
   setAudioSrc(LOFI_MP3,"🎶 Lofi Hip-Hop");
-  audioPlayer.volume=0.1;
-  volSlider.value=0.1;
+  audioPlayer.volume=0.1;volSlider.value=0.1;
 });
 
 mcPlay.addEventListener("click",()=>{
@@ -921,7 +896,7 @@ musicUrl.addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementBy
 document.getElementById("music-file-input").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;setAudioSrc(URL.createObjectURL(f),"📁 "+f.name);});
 
 function handleMusicForRoom(room){
-  if(room==="lobby"||room==="study"){showMusicBar(true);}
+  if(room==="lobby"||room==="study")showMusicBar(true);
   else showMusicBar(false);
 }
 
@@ -961,100 +936,9 @@ socket.on("pomodoro_state",({running,seconds})=>{
 socket.on("pomodoro_done",()=>toast("🍅 ¡Pomodoro terminado!"));
 socket.on("avatar_updated",({id,avatarData})=>{if(players[id])players[id].avatarData=avatarData;});
 
-function gameLoop(){
-  animTick++;tickMovement();
-  if(animTick%4===0)drawBg();
-  drawAvatars();
-  drawEmotes(avCanvas.width,avCanvas.height);
-  requestAnimationFrame(gameLoop);
-}
-gameLoop();
-const emotePicker=document.getElementById("emote-picker");
-let activeEmotes={};
-const EMOTE_DUR=180;
-
-document.querySelectorAll(".emote-opt").forEach(btn=>{
-  btn.addEventListener("click",e=>{
-    e.stopPropagation();
-    const emote=btn.dataset.emote;
-    emotePicker.classList.remove("visible");
-    socket.emit("emote",emote);
-    activeEmotes[socket.id]={emote,tick:animTick};
-  });
-});
-document.addEventListener("click",e=>{
-  if(!e.target.closest("#emote-picker"))emotePicker.classList.remove("visible");
-});
-socket.on("emote",({id,emote})=>{activeEmotes[id]={emote,tick:animTick};});
-
-function showEmotePicker(sx,sy){
-  emotePicker.classList.add("visible");
-  const pw=130,wrap=document.getElementById("world-wrap").getBoundingClientRect();
-  emotePicker.style.left=Math.max(4,Math.min(wrap.width-pw-4,sx-pw/2))+"px";
-  emotePicker.style.top=Math.max(4,sy-50)+"px";
-}
-
-function drawEmotes(W,H){
-  Object.values(players).forEach(p=>{
-    const ae=activeEmotes[p.id];if(!ae)return;
-    const age=animTick-ae.tick;
-    if(age>EMOTE_DUR){delete activeEmotes[p.id];return;}
-    const vp=getVP(p.id,p.x,p.y);
-    const sx=(vp.x/800)*W, sy=(vp.y/450)*H;
-    const floatY=(age/EMOTE_DUR)*20;
-    const alpha=age>EMOTE_DUR*.7?1-(age-EMOTE_DUR*.7)/(EMOTE_DUR*.3):1;
-    const scale=age<8?.5+(age/8)*.5:1;
-    avCtx.save();
-    avCtx.globalAlpha=alpha;
-    avCtx.font="20px serif";
-    avCtx.textAlign="center";
-    avCtx.translate(sx,sy-65-floatY);
-    avCtx.scale(scale,scale);
-    avCtx.fillText(ae.emote,0,0);
-    avCtx.restore();
-  });
-}
-
-// Parchear gameLoop para incluir emotes
-const _origGameLoop=gameLoop;
-(function patchLoop(){
-  cancelAnimationFrame(window._loopId);
-  function loop(){
-    animTick++;tickMovement();
-    if(animTick%4===0)drawBg();
-    drawAvatars();
-    drawEmotes(avCanvas.width,avCanvas.height);
-    window._loopId=requestAnimationFrame(loop);
-  }
-  loop();
-})();
-
-// Click en propio avatar abre picker
-const _origHandleClick=handleWorldClick;
-window.handleWorldClick=function(ex,ey){
-  const rect=document.getElementById("world-wrap").getBoundingClientRect();
-  const W=rect.width,H=rect.height;
-  if(players[socket.id]){
-    const p=players[socket.id];
-    const vp=getVP(p.id,p.x,p.y);
-    const ax=(vp.x/800)*W, ay=(vp.y/450)*H;
-    if(Math.abs(ex-ax)<30&&Math.abs(ey-ay)<40){
-      showEmotePicker(ex,ey);return;
-    }
-  }
-  _origHandleClick(ex,ey);
-};
-// Redirigir los event listeners al nuevo handler
-document.getElementById("world").removeEventListener("click",document.getElementById("world")._clickHandler);
-document.getElementById("world")._clickHandler=e=>{
-  if(e.target.closest("#arcade-menu")||e.target.closest("#game-overlay")||e.target.closest("#pomodoro-wrap")||e.target.closest("#music-bar")||e.target.closest("#avatar-modal"))return;
-  const rect=e.currentTarget.getBoundingClientRect();
-  window.handleWorldClick(e.clientX-rect.left,e.clientY-rect.top);
-};
-document.getElementById("world").addEventListener("click",document.getElementById("world")._clickHandler);
-
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.opacity="1";setTimeout(()=>t.style.opacity="0",3000);}
-window.addEventListener("resize",()=>{resizeCanvases();drawBg();});resizeCanvases();
+window.addEventListener("resize",()=>{resizeCanvases();drawBg();});
+resizeCanvases();
 handleMusicForRoom("lobby");
 drawBigPreview();
 </script>
