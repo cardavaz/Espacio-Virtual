@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espacio Virtual</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#1a1a2e;color:#eee;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Header */
+#header{display:flex;align-items:center;gap:12px;padding:8px 16px;background:#16213e;border-bottom:1px solid #0f3460}
+#header h1{font-size:16px;font-weight:700;color:#e94560}
+#my-name{background:#0f3460;border:1px solid #e94560;color:#eee;padding:4px 8px;border-radius:6px;font-size:13px;width:140px}
+#my-avatar{font-size:20px}
+.room-btn{background:transparent;border:1px solid #0f3460;color:#aaa;padding:5px 12px;border-radius:20px;cursor:pointer;font-size:12px;transition:all .2s}
+.room-btn:hover,.room-btn.active{background:#e94560;border-color:#e94560;color:#fff}
+#online-count{margin-left:auto;font-size:12px;color:#888}
+
+/* Main layout */
+#main{flex:1;display:flex;overflow:hidden}
+
+/* World canvas */
+#world-wrap{flex:1;position:relative;overflow:hidden}
+#world{width:100%;height:100%;position:relative;cursor:crosshair}
+#canvas-bg{position:absolute;top:0;left:0;width:100%;height:100%}
+.avatar-el{position:absolute;transform:translate(-50%,-50%);text-align:center;pointer-events:none;transition:left .12s,top .12s;z-index:2}
+.avatar-el .emo{font-size:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.avatar-el .lbl{font-size:10px;background:rgba(0,0,0,.6);padding:2px 5px;border-radius:8px;white-space:nowrap;margin-top:2px}
+.avatar-el.me .emo{filter:drop-shadow(0 0 6px #e94560)}
+
+/* Overlay por sala */
+#room-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+
+/* Sidebar */
+#sidebar{width:260px;display:flex;flex-direction:column;background:#16213e;border-left:1px solid #0f3460}
+#chat-box{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px}
+.msg{background:#0f3460;border-radius:8px;padding:6px 8px;font-size:12px;word-break:break-word}
+.msg .who{font-weight:700;color:#e94560;margin-bottom:2px}
+.msg.system{background:transparent;color:#666;font-style:italic;font-size:11px}
+#chat-input-wrap{display:flex;gap:6px;padding:8px;border-top:1px solid #0f3460}
+#chat-input{flex:1;background:#0f3460;border:1px solid #1a4a7a;color:#eee;padding:6px 8px;border-radius:6px;font-size:13px}
+#chat-send{background:#e94560;border:none;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer}
+
+/* Pong */
+#pong-wrap{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;background:#000;border:2px solid #e94560;border-radius:8px;overflow:hidden}
+#pong-canvas{display:block}
+#pong-info{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:13px;color:#e94560;font-weight:700;text-shadow:0 0 8px #e94560}
+
+/* Pomodoro */
+#pomodoro-wrap{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;background:#16213e;border:2px solid #e94560;border-radius:16px;padding:24px 36px;text-align:center}
+#pom-time{font-size:56px;font-weight:700;color:#e94560;font-variant-numeric:tabular-nums;letter-spacing:2px}
+#pom-label{font-size:12px;color:#888;margin-bottom:16px}
+.pom-btn{background:#e94560;border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;margin:0 4px}
+.pom-btn.secondary{background:#0f3460}
+
+/* Room backgrounds */
+body.in-arcade #canvas-bg{background:radial-gradient(ellipse at 50% 100%,#1a0030 0%,#0d001a 100%)}
+body.in-study  #canvas-bg{background:radial-gradient(ellipse at 50% 0%,#0a1628 0%,#050e1c 100%)}
+body.in-relax  #canvas-bg{background:radial-gradient(ellipse at 50% 50%,#001a0d 0%,#00100a 100%)}
+body.in-lobby  #canvas-bg{background:radial-gradient(ellipse at 50% 50%,#1a1a2e 0%,#16213e 100%)}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#e94560;color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100}
+</style>
+</head>
+<body class="in-lobby">
+
+<div id="header">
+  <span id="my-avatar">🐱</span>
+  <h1>🌐 Espacio Virtual</h1>
+  <input id="my-name" placeholder="Tu nombre" maxlength="20">
+  <div id="room-btns"></div>
+  <span id="online-count">0 online</span>
+</div>
+
+<div id="main">
+  <div id="world-wrap">
+    <div id="world">
+      <canvas id="canvas-bg"></canvas>
+      <canvas id="room-overlay"></canvas>
+    </div>
+    <!-- Pong -->
+    <div id="pong-wrap">
+      <span id="pong-info">W/S · ↑/↓</span>
+      <canvas id="pong-canvas" width="500" height="300"></canvas>
+    </div>
+    <!-- Pomodoro -->
+    <div id="pomodoro-wrap">
+      <div id="pom-time">25:00</div>
+      <div id="pom-label">Pomodoro compartido</div>
+      <button class="pom-btn" onclick="socket.emit('pomodoro_toggle')">▶ / ⏸</button>
+      <button class="pom-btn secondary" onclick="socket.emit('pomodoro_reset')">Reset</button>
+    </div>
+  </div>
+  <div id="sidebar">
+    <div id="chat-box"></div>
+    <div id="chat-input-wrap">
+      <input id="chat-input" placeholder="Mensaje..." maxlength="200">
+      <button id="chat-send">➤</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const socket = io();
+let me = null;
+let currentRoom = "lobby";
+let players = {};
+
+// Canvas de fondo decorativo
+const bgCanvas = document.getElementById("canvas-bg");
+const bgCtx = bgCanvas.getContext("2d");
+function resizeCanvases() {
+  const w = document.getElementById("world-wrap").clientWidth;
+  const h = document.getElementById("world-wrap").clientHeight;
+  bgCanvas.width = w; bgCanvas.height = h;
+  drawBg();
+}
+function drawBg() {
+  bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+  if (currentRoom === "arcade") drawArcadeBg();
+  else if (currentRoom === "study") drawStudyBg();
+  else if (currentRoom === "relax") drawRelaxBg();
+  else drawLobbyBg();
+}
+function drawLobbyBg() {
+  for (let i=0;i<40;i++) {
+    bgCtx.fillStyle=`rgba(233,69,96,${Math.random()*.15+.05})`;
+    bgCtx.beginPath();
+    bgCtx.arc(Math.random()*bgCanvas.width,Math.random()*bgCanvas.height,Math.random()*2+1,0,Math.PI*2);
+    bgCtx.fill();
+  }
+}
+function drawArcadeBg() {
+  bgCtx.strokeStyle="rgba(233,69,96,0.15)";
+  bgCtx.lineWidth=1;
+  for(let x=0;x<bgCanvas.width;x+=40){bgCtx.beginPath();bgCtx.moveTo(x,0);bgCtx.lineTo(x,bgCanvas.height);bgCtx.stroke();}
+  for(let y=0;y<bgCanvas.height;y+=40){bgCtx.beginPath();bgCtx.moveTo(0,y);bgCtx.lineTo(bgCanvas.width,y);bgCtx.stroke();}
+}
+function drawStudyBg() {
+  bgCtx.strokeStyle="rgba(100,180,255,0.07)";
+  bgCtx.lineWidth=1;
+  for(let y=30;y<bgCanvas.height;y+=32){bgCtx.beginPath();bgCtx.moveTo(40,y);bgCtx.lineTo(bgCanvas.width-40,y);bgCtx.stroke();}
+  bgCtx.strokeStyle="rgba(255,100,100,0.1)";
+  bgCtx.beginPath();bgCtx.moveTo(60,0);bgCtx.lineTo(60,bgCanvas.height);bgCtx.stroke();
+}
+function drawRelaxBg() {
+  for(let i=0;i<6;i++){
+    const r=Math.random()*80+40,x=Math.random()*bgCanvas.width,y=Math.random()*bgCanvas.height;
+    const g=bgCtx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,"rgba(20,120,60,0.12)");g.addColorStop(1,"transparent");
+    bgCtx.fillStyle=g;bgCtx.beginPath();bgCtx.arc(x,y,r,0,Math.PI*2);bgCtx.fill();
+  }
+}
+
+// Avatares en el DOM
+const worldEl = document.getElementById("world");
+function renderPlayers(ps) {
+  players = {};
+  ps.forEach(p=>players[p.id]=p);
+  // Limpiar avatares viejos
+  document.querySelectorAll(".avatar-el").forEach(el=>el.remove());
+  ps.forEach(p=>{
+    const wrap = document.getElementById("world-wrap");
+    const el = document.createElement("div");
+    el.className = "avatar-el" + (p.id===socket.id?" me":"");
+    el.id = "av_"+p.id;
+    const px = (p.x/800)*wrap.clientWidth;
+    const py = (p.y/450)*wrap.clientHeight;
+    el.style.left=px+"px"; el.style.top=py+"px";
+    el.innerHTML=`<div class="emo">${p.avatar}</div><div class="lbl" style="color:${p.color}">${p.name}</div>`;
+    worldEl.appendChild(el);
+  });
+}
+function updatePlayer(p) {
+  const wrap = document.getElementById("world-wrap");
+  let el = document.getElementById("av_"+p.id);
+  if (!el) { renderPlayers(Object.values({...players,[p.id]:p})); return; }
+  const px = (p.x/800)*wrap.clientWidth;
+  const py = (p.y/450)*wrap.clientHeight;
+  el.style.left=px+"px"; el.style.top=py+"px";
+  el.querySelector(".lbl").textContent=p.name;
+}
+
+// Movimiento — click en el mundo
+worldEl.addEventListener("click", (e) => {
+  const rect = worldEl.getBoundingClientRect();
+  const x = ((e.clientX-rect.left)/rect.width)*800;
+  const y = ((e.clientY-rect.top)/rect.height)*450;
+  socket.emit("move",{x,y});
+});
+
+// Nombre
+const nameInput = document.getElementById("my-name");
+nameInput.addEventListener("change",()=>socket.emit("set_name",nameInput.value.trim()));
+
+// Chat
+const chatBox = document.getElementById("chat-box");
+const chatInput = document.getElementById("chat-input");
+document.getElementById("chat-send").addEventListener("click",sendChat);
+chatInput.addEventListener("keydown",e=>{if(e.key==="Enter")sendChat();});
+function sendChat(){
+  const t=chatInput.value.trim();
+  if(!t)return;
+  socket.emit("chat",t);
+  chatInput.value="";
+}
+function addMsg(m){
+  const div=document.createElement("div");
+  div.className="msg"+(m.system?" system":"");
+  if(!m.system) div.innerHTML=`<div class="who">${m.avatar} ${m.from}</div>${m.text}`;
+  else div.textContent=m.text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+// Rooms
+function buildRoomBtns(rooms){
+  const wrap=document.getElementById("room-btns");
+  wrap.innerHTML="";
+  Object.values(rooms).forEach(r=>{
+    const b=document.createElement("button");
+    b.className="room-btn"+(r.id===currentRoom?" active":"");
+    b.id="rbtn_"+r.id;
+    b.textContent=`${r.icon} ${r.name} (${r.count})`;
+    b.addEventListener("click",()=>joinRoom(r.id));
+    wrap.appendChild(b);
+  });
+}
+function joinRoom(roomId){
+  if(roomId===currentRoom)return;
+  socket.emit("join_room",roomId);
+}
+
+// Pong
+let pongRunning=false;
+const pongCanvas=document.getElementById("pong-canvas");
+const pongCtx=pongCanvas.getContext("2d");
+let pongState={ball:{x:250,y:150,vx:3,vy:2},p1:{y:120},p2:{y:120},score:[0,0]};
+const pongKeys={};
+document.addEventListener("keydown",e=>{pongKeys[e.key]=true; if(["w","s","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();});
+document.addEventListener("keyup",e=>{pongKeys[e.key]=false;});
+
+let pongInterval=null;
+function startPong(){
+  document.getElementById("pong-wrap").style.display="block";
+  if(pongInterval)return;
+  pongInterval=setInterval(()=>{
+    // Input local
+    if(pongKeys["w"]||pongKeys["W"]) { pongState.p1.y=Math.max(0,pongState.p1.y-5); socket.emit("pong_input",{paddle:1,y:pongState.p1.y}); }
+    if(pongKeys["s"]||pongKeys["S"]) { pongState.p1.y=Math.min(240,pongState.p1.y+5); socket.emit("pong_input",{paddle:1,y:pongState.p1.y}); }
+    if(pongKeys["ArrowUp"])   { pongState.p2.y=Math.max(0,pongState.p2.y-5); socket.emit("pong_input",{paddle:2,y:pongState.p2.y}); }
+    if(pongKeys["ArrowDown"]) { pongState.p2.y=Math.min(240,pongState.p2.y+5); socket.emit("pong_input",{paddle:2,y:pongState.p2.y}); }
+    // Mover bola (simulación local básica, el server no arbitra la bola en esta versión)
+    let b=pongState.ball;
+    b.x+=b.vx; b.y+=b.vy;
+    if(b.y<5||b.y>295){b.vy*=-1;}
+    // Paleta izq
+    if(b.x<20&&b.y>pongState.p1.y&&b.y<pongState.p1.y+60){b.vx=Math.abs(b.vx)+0.1;}
+    // Paleta der
+    if(b.x>480&&b.y>pongState.p2.y&&b.y<pongState.p2.y+60){b.vx=-(Math.abs(b.vx)+0.1);}
+    // Punto
+    if(b.x<0){pongState.score[1]++;reset();}
+    if(b.x>500){pongState.score[0]++;reset();}
+    drawPong();
+  },16);
+}
+function reset(){
+  pongState.ball={x:250,y:150,vx:(Math.random()>0.5?3:-3),vy:(Math.random()*2-1)*2};
+}
+function stopPong(){
+  document.getElementById("pong-wrap").style.display="none";
+  clearInterval(pongInterval); pongInterval=null;
+}
+function drawPong(){
+  const c=pongCtx,s=pongState;
+  c.fillStyle="#000"; c.fillRect(0,0,500,300);
+  c.setLineDash([8,8]); c.strokeStyle="#333"; c.beginPath(); c.moveTo(250,0); c.lineTo(250,300); c.stroke(); c.setLineDash([]);
+  c.fillStyle="#e94560"; c.fillRect(8,s.p1.y,10,60); c.fillRect(482,s.p2.y,10,60);
+  c.fillStyle="#fff"; c.beginPath(); c.arc(s.ball.x,s.ball.y,7,0,Math.PI*2); c.fill();
+  c.fillStyle="#e94560"; c.font="bold 22px system-ui";
+  c.fillText(s.score[0],160,30); c.fillText(s.score[1],310,30);
+}
+socket.on("pong_input",({paddle,y})=>{
+  if(paddle===1)pongState.p1.y=y;
+  else pongState.p2.y=y;
+});
+
+// Pomodoro
+socket.on("pomodoro_state",({running,seconds})=>{
+  const m=Math.floor(seconds/60).toString().padStart(2,"0");
+  const s=(seconds%60).toString().padStart(2,"0");
+  document.getElementById("pom-time").textContent=`${m}:${s}`;
+  document.getElementById("pom-label").textContent=running?"⏱ En curso — compartido":"Pomodoro compartido";
+});
+socket.on("pomodoro_done",()=>{
+  toast("🍅 ¡Pomodoro terminado! Tomá un descanso.");
+});
+
+// Socket events
+socket.on("init",({player,rooms})=>{
+  me=player;
+  document.getElementById("my-name").value=player.name;
+  document.getElementById("my-avatar").textContent=player.avatar;
+  buildRoomBtns(rooms);
+});
+socket.on("room_update",({room,players:ps})=>{
+  if(room===currentRoom){
+    renderPlayers(ps);
+    document.getElementById("online-count").textContent=`${ps.length} en sala`;
+  }
+  const btn=document.getElementById("rbtn_"+room);
+  if(btn){
+    const rm=btn.textContent.match(/(.+)\s\(\d+\)/);
+    if(rm)btn.textContent=rm[1]+` (${ps.length})`;
+  }
+});
+socket.on("room_joined",({room,players:ps})=>{
+  currentRoom=room;
+  document.querySelectorAll(".room-btn").forEach(b=>b.classList.remove("active"));
+  const btn=document.getElementById("rbtn_"+room);
+  if(btn)btn.classList.add("active");
+  document.body.className="in-"+room;
+  resizeCanvases();
+  renderPlayers(ps);
+  addMsg({system:true,text:`Entraste a ${room}`});
+  // Activar widget de sala
+  if(room==="arcade") startPong();
+  else stopPong();
+  if(room==="study") document.getElementById("pomodoro-wrap").style.display="block";
+  else document.getElementById("pomodoro-wrap").style.display="none";
+});
+socket.on("chat",(m)=>addMsg(m));
+
+// Toast helper
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.style.opacity="1";
+  setTimeout(()=>t.style.opacity="0",3000);
+}
+
+window.addEventListener("resize",resizeCanvases);
+resizeCanvases();
+</script>
+</body>
+</html>
