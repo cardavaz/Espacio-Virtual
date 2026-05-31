@@ -555,8 +555,9 @@ function buildRoomBtns(rooms){
 // ── ARCADE ────────────────────────────────────────────────────────────────
 let currentGame=null,pongInterval=null,tetrisInterval=null;
 const pongKeys={};
-document.addEventListener("keydown",e=>{pongKeys[e.key]=true;if(["w","s","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();});
-document.addEventListener("keyup",e=>{pongKeys[e.key]=false;});
+function typingInInput(e){const t=e.target;return t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA");}
+document.addEventListener("keydown",e=>{if(typingInInput(e))return;pongKeys[e.key]=true;if(["w","s","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();});
+document.addEventListener("keyup",e=>{if(typingInInput(e))return;pongKeys[e.key]=false;});
 const arcadeMenu=document.getElementById("arcade-menu");
 const gameOverlay=document.getElementById("game-overlay");
 
