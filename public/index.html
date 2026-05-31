@@ -116,7 +116,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .music-action-btn{background:var(--accent);border:none;color:#fff;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600}
 #music-file-btn{background:var(--bg);border:1.5px solid var(--border);color:var(--text2);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px}
 #music-file-input{display:none}
-#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:7px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;font-weight:600}
+/* Emote picker */
+#emote-picker{display:none;position:absolute;z-index:30;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:6px 8px;box-shadow:0 4px 16px rgba(74,55,40,.18);gap:6px;flex-direction:row}
+#emote-picker.visible{display:flex}
+.emote-opt{font-size:22px;cursor:pointer;padding:4px;border-radius:8px;transition:transform .15s,background .15s;line-height:1}
+.emote-opt:hover{background:var(--bg);transform:scale(1.25)}left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:7px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;font-weight:600}
 </style>
 </head>
 <body>
@@ -202,7 +206,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     </div>
   </div>
 </div>
-<div id="toast"></div>
+    <div id="emote-picker">
+      <span class="emote-opt" data-emote="😊">😊</span>
+      <span class="emote-opt" data-emote="😐">😐</span>
+      <span class="emote-opt" data-emote="😢">😢</span>
+    </div>
+    <div id="toast"></div>
 <script>
 const socket = io();
 let me = null, currentRoom = "lobby", players = {};
@@ -671,7 +680,14 @@ function drawAvatars(){
   });
 }
 
-function gameLoop(){animTick++;tickMovement();if(animTick%4===0)drawBg();drawAvatars();requestAnimationFrame(gameLoop);}
+// ── GAME LOOP ─────────────────────────────────────────────────────────────
+function gameLoop(){
+  animTick++;tickMovement();
+  if(animTick%4===0)drawBg();
+  drawAvatars();
+  drawEmotes(avCanvas.width, avCanvas.height);
+  requestAnimationFrame(gameLoop);
+}
 gameLoop();
 
 // ── INPUT ─────────────────────────────────────────────────────────────────
@@ -680,6 +696,20 @@ function typingInInput(e){const t=e.target;return t&&(t.tagName==="INPUT"||t.tag
 function handleWorldClick(ex, ey){
   const rect=document.getElementById("world-wrap").getBoundingClientRect();
   const W=rect.width, H=rect.height;
+
+  // ¿Click sobre mi propio avatar?
+  if(me && players[socket.id]){
+    const p = players[socket.id];
+    const vp = getVP(p.id, p.x, p.y);
+    const ax = (vp.x/800)*W;
+    const ay = (vp.y/450)*H;
+    const S = 2.5;
+    if(Math.abs(ex-ax)<14*S && Math.abs(ey-ay)<20*S){
+      showEmotePicker(ex, ey);
+      return;
+    }
+  }
+
   if(handleBenchClick(ex,ey,W,H))return;
   if(mySeat){socket.emit("stand");mySeat=null;}
   socket.emit("move",{x:(ex/W)*800,y:(ey/H)*450});

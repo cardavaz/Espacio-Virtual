@@ -139,6 +139,13 @@ io.on("connection", (socket) => {
     io.to("lobby").emit("bench_update", { benches: serializeBenches() });
   });
 
+  // Emote
+  socket.on("emote", (emote) => {
+    const allowed = ["😊","😐","😢"];
+    if(!allowed.includes(emote)) return;
+    io.to(player.room).emit("emote", {id: socket.id, emote});
+  });
+
   // Pong
   socket.on("pong_input", (data) => {
     socket.to("arcade").emit("pong_input", { ...data, id: socket.id });
