@@ -473,28 +473,87 @@ function drawLantern(ctx,x,y,tick){
   ctx.beginPath();ctx.roundRect(x+3,y+2,10,8,2);ctx.fill();
 }
 function drawFountain(ctx,cx,cy,tick){
-  const r=32;
-  // basin
-  ctx.fillStyle=C.s2;ctx.beginPath();ctx.ellipse(cx,cy+8,r+6,12,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=C.s1;ctx.beginPath();ctx.ellipse(cx,cy+8,r+3,10,0,0,Math.PI*2);ctx.fill();
-  // water
-  waterTile(ctx,cx-r,cy-8,tick);
-  ctx.fillStyle=C.w1;ctx.beginPath();ctx.ellipse(cx,cy+4,r-2,r*0.35,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=C.w3;
-  for(let i=0;i<5;i++){
-    const angle=tick*0.04+i*1.26;
-    const wx=cx+Math.cos(angle)*(r-10);const wy=cy+4+Math.sin(angle)*(r-10)*0.35;
-    ctx.beginPath();ctx.ellipse(wx,wy,6,2,0,0,Math.PI*2);ctx.fill();
+  const t=tick;
+
+  // Outer basin shadow
+  ctx.fillStyle="rgba(42,26,8,0.18)";
+  ctx.beginPath();ctx.ellipse(cx,cy+14,38,10,0,0,Math.PI*2);ctx.fill();
+
+  // Outer basin rim — stone
+  ctx.fillStyle=C.s1;
+  ctx.beginPath();ctx.ellipse(cx,cy+8,36,11,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=C.s3;
+  ctx.beginPath();ctx.ellipse(cx,cy+7,34,10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=C.s2;
+  ctx.beginPath();ctx.ellipse(cx,cy+6,32,9,0,0,Math.PI*2);ctx.fill();
+  // rim highlight
+  ctx.fillStyle="rgba(255,255,255,0.18)";
+  ctx.beginPath();ctx.ellipse(cx-8,cy+3,16,4,-.3,0,Math.PI);ctx.fill();
+
+  // Water surface
+  ctx.fillStyle=C.w1;
+  ctx.beginPath();ctx.ellipse(cx,cy+5,29,8,0,0,Math.PI*2);ctx.fill();
+  // Water depth shade edges
+  ctx.fillStyle=C.w4;
+  ctx.beginPath();ctx.ellipse(cx,cy+6,29,8,0,0,Math.PI*2);
+  ctx.beginPath();ctx.ellipse(cx,cy+5,29,8,0,0,Math.PI*2);ctx.fill();
+
+  // Animated water ripples
+  for(let i=0;i<4;i++){
+    const phase=(t*0.04+i*1.57)%(Math.PI*2);
+    const rx=12+Math.sin(phase)*6;
+    const ry=3+Math.sin(phase)*1.5;
+    const wx=cx+Math.cos(phase+i)*14;
+    const wy=cy+5+Math.sin(phase+i)*3;
+    ctx.strokeStyle=`rgba(144,212,240,${0.25+Math.sin(phase)*0.15})`;
+    ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.ellipse(wx,wy,rx,ry,0,0,Math.PI*2);ctx.stroke();
   }
-  // center post
-  ctx.fillStyle=C.s3;ctx.fillRect(cx-3,cy-20,6,28);
-  ctx.fillStyle=C.w3;
-  const sp=Math.sin(tick*0.08)*4;
-  for(let i=0;i<6;i++){
-    const a=tick*0.06+i*1.05;
-    ctx.fillStyle=`rgba(144,208,236,${0.6+Math.sin(tick*0.1+i)*0.3})`;
-    ctx.beginPath();ctx.ellipse(cx+Math.cos(a)*8,cy-12+Math.sin(a+sp)*6,3,2,a,0,Math.PI*2);ctx.fill();
+  // Water shimmer
+  ctx.fillStyle="rgba(200,240,255,0.22)";
+  ctx.beginPath();ctx.ellipse(cx-10,cy+3,10,2.5,-.2,0,Math.PI*2);ctx.fill();
+
+  // Central column base
+  ctx.fillStyle=C.s2;ctx.beginPath();ctx.ellipse(cx,cy+4,8,3,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=C.s3;ctx.beginPath();ctx.ellipse(cx,cy+3,7,2.5,0,0,Math.PI*2);ctx.fill();
+
+  // Column body
+  ctx.fillStyle=C.s1;ctx.fillRect(cx-5,cy-22,10,26);
+  ctx.fillStyle="rgba(255,255,255,0.12)";ctx.fillRect(cx-4,cy-22,3,26);
+  ctx.fillStyle="rgba(42,26,8,0.1)";ctx.fillRect(cx+3,cy-22,2,26);
+  // Column top cap
+  ctx.fillStyle=C.s3;ctx.beginPath();ctx.ellipse(cx,cy-22,8,3,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=C.s1;ctx.beginPath();ctx.ellipse(cx,cy-23,7,2.5,0,0,Math.PI*2);ctx.fill();
+  // Column highlight
+  ctx.fillStyle="rgba(255,255,255,0.15)";ctx.beginPath();ctx.ellipse(cx-2,cy-23,3,1.5,0,0,Math.PI*2);ctx.fill();
+
+  // Water jets — arcing streams from top
+  const numJets=6;
+  for(let i=0;i<numJets;i++){
+    const angle=(i/numJets)*Math.PI*2 + t*0.02;
+    const jitter=Math.sin(t*0.07+i)*1.5;
+    const jetLen=16+Math.sin(t*0.05+i*1.1)*3;
+    ctx.strokeStyle=`rgba(140,210,240,${0.5+Math.sin(t*0.08+i)*0.15})`;
+    ctx.lineWidth=1.5;
+    ctx.beginPath();
+    // Arc from top of column outward and down
+    const startX=cx+Math.cos(angle)*4;
+    const startY=cy-22;
+    const endX=cx+Math.cos(angle)*jetLen+jitter;
+    const endY=cy+2+Math.sin(t*0.06+i)*2;
+    const cpX=cx+Math.cos(angle)*(jetLen*0.7)+jitter;
+    const cpY=cy-28+Math.sin(t*0.05+i)*3;
+    ctx.moveTo(startX,startY);
+    ctx.quadraticCurveTo(cpX,cpY,endX,endY);
+    ctx.stroke();
+    // Droplet at end
+    ctx.fillStyle=`rgba(160,220,245,${0.4+Math.sin(t*0.09+i)*0.2})`;
+    ctx.beginPath();ctx.arc(endX,endY,1.5,0,Math.PI*2);ctx.fill();
   }
+
+  // Top spray mist glow
+  ctx.fillStyle="rgba(160,220,245,0.08)";
+  ctx.beginPath();ctx.arc(cx,cy-20,20,0,Math.PI*2);ctx.fill();
 }
 
 function drawLobby(ctx,W,H){
@@ -840,7 +899,14 @@ volSlider.addEventListener("input",()=>{const v=parseFloat(volSlider.value);if(a
 document.getElementById("music-load-btn").addEventListener("click",()=>{const val=musicUrl.value.trim();if(!val)return;const m=val.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})/);if(m)loadYouTube(val);else setAudioSrc(val,val.split("/").pop()||val);musicUrl.value="";});
 musicUrl.addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("music-load-btn").click();});
 document.getElementById("music-file-input").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;setAudioSrc(URL.createObjectURL(f),"📁 "+f.name);});
-function handleMusicForRoom(room){if(room==="lobby"){showMusicBar(true);setTimeout(loadDefaultLofi,400);}else showMusicBar(false);}
+function handleMusicForRoom(room){
+  if(room==="lobby"||room==="study"){
+    showMusicBar(true);
+    setTimeout(loadDefaultLofi,400);
+  } else {
+    showMusicBar(false);
+  }
+}
 
 // ── SOCKET ────────────────────────────────────────────────────────────────
 socket.on("init",({player,rooms})=>{
