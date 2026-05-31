@@ -470,12 +470,12 @@ function drawFountain(ctx,cx,cy,tick){
 // ── BANCOS ────────────────────────────────────────────────────────────────
 let benchState={};
 let mySeat=null;
-// 4 bancos, uno en cada cuadrante verde
+// Bancos en coordenadas 0-800/0-450, centrados en cada cuadrante verde
 const BENCH_DEFS={
-  b1:{seats:[{x:120,y:110},{x:155,y:110},{x:190,y:110}]},  // arriba-izq
-  b2:{seats:[{x:610,y:110},{x:645,y:110},{x:680,y:110}]},  // arriba-der
-  b3:{seats:[{x:120,y:340},{x:155,y:340},{x:190,y:340}]},  // abajo-izq
-  b4:{seats:[{x:610,y:340},{x:645,y:340},{x:680,y:340}]},  // abajo-der
+  b1:{seats:[{x:130,y:115},{x:165,y:115},{x:200,y:115}]},  // arriba-izq
+  b2:{seats:[{x:600,y:115},{x:635,y:115},{x:670,y:115}]},  // arriba-der
+  b3:{seats:[{x:130,y:335},{x:165,y:335},{x:200,y:335}]},  // abajo-izq
+  b4:{seats:[{x:600,y:335},{x:635,y:335},{x:670,y:335}]},  // abajo-der
 };
 
 function drawBenchesOnBg(ctx,W,H){
@@ -532,18 +532,27 @@ socket.on("move_to",({x,y})=>{socket.emit("move",{x,y});});
 // ── LOBBY ─────────────────────────────────────────────────────────────────
 function drawLobby(ctx,W,H){
   const cols=Math.ceil(W/TSIZE)+1,rows=Math.ceil(H/TSIZE)+1;
-  const cx=Math.floor(cols/2),cy=Math.floor(rows/2);
+  // Centro real en píxeles, independiente del grid
+  const CX=Math.round(W/2), CY=Math.round(H/2);
+  // Tile center para path
+  const cx=Math.floor(CX/TSIZE), cy=Math.floor(CY/TSIZE);
+
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)grassTile(ctx,c*TSIZE,r*TSIZE,(r*cols+c)*3);
+
+  // Paths centrados exactamente
   for(let c=0;c<cols;c++){pathTile(ctx,c*TSIZE,cy*TSIZE,c);pathTile(ctx,c*TSIZE,(cy+1)*TSIZE,c+1);}
   for(let r=0;r<rows;r++){pathTile(ctx,cx*TSIZE,r*TSIZE,r);pathTile(ctx,(cx+1)*TSIZE,r*TSIZE,r+1);}
   ctx.fillStyle="rgba(42,26,8,0.1)";
   ctx.fillRect(cx*TSIZE,0,1,H);ctx.fillRect((cx+2)*TSIZE,0,1,H);
   ctx.fillRect(0,cy*TSIZE,W,1);ctx.fillRect(0,(cy+2)*TSIZE,W,1);
+
   [[0,0],[1,0],[0,1],[cols-3,0],[cols-2,0],[cols-1,0],[0,rows-3],[cols-1,rows-2]].forEach(([c,rr])=>drawTree(ctx,c*TSIZE,rr*TSIZE,1.1));
   const flC=[C.fl1,C.fl2,C.fl3,C.fl4,C.fl5];
   [[2,2],[3,2],[2,3],[4,3],[cols-3,2],[cols-4,2],[cols-3,3],[2,rows-3],[cols-4,rows-3]].forEach(([c,rr],i)=>drawFlower(ctx,c*TSIZE+8,rr*TSIZE+6,flC[i%5],animTick));
   [[cx-2,cy-1],[cx+2,cy-1],[cx-2,cy+1],[cx+2,cy+1]].forEach(([c,rr])=>drawLantern(ctx,c*TSIZE+12,rr*TSIZE+4,animTick));
-  drawFountain(ctx,cx*TSIZE+TSIZE,cy*TSIZE+TSIZE,animTick);
+
+  // Fuente exactamente en el centro de la pantalla
+  drawFountain(ctx,CX,CY,animTick);
   drawBenchesOnBg(ctx,W,H);
 }
 
@@ -637,7 +646,10 @@ function drawAvatars(){
     const sx=(vp.x/800)*W,sy=(vp.y/450)*H;
     const av=p.avatarData||{gender:"m",skin:1,hair:1,shirt:0};
     const S=2.5;
-    drawChibi(avCtx,sx-8*S,sy-24*S,av,p.name,p.id===socket.id,vp.frame);
+    const sitting=!!p.sitting;
+    // Si está sentado, subir un poco el avatar visualmente (está sobre el banco)
+    const yOff=sitting?-8:0;
+    drawChibi(avCtx,sx-8*S,sy-24*S+yOff,av,p.name,p.id===socket.id,vp.frame,sitting);
   });
 }
 
@@ -832,7 +844,20 @@ mcPlay.addEventListener("click",()=>{
   if(musicMode==="youtube"&&ytPlayer){try{if(musicPlaying){ytPlayer.pauseVideo();musicPlaying=false;mcPlay.textContent="▶";}else{ytPlayer.playVideo();musicPlaying=true;mcPlay.textContent="⏸";}}catch(e){}}
 });
 volSlider.addEventListener("input",()=>{const v=parseFloat(volSlider.value);if(audioPlayer)audioPlayer.volume=v;if(ytPlayer){try{ytPlayer.setVolume(v*100);}catch(e){}}});
-document.getElementById("music-load-btn").addEventListener("click",()=>{const val=musicUrl.value.trim();if(!val)return;const m=val.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})/);if(m)loadYouTube(val);else setAudioSrc(val,val.split("/").pop()||val);musicUrl.value="";});
+// Botón inicio lofi
+document.getElementById("music-start-btn").addEventListener("click",()=>{
+  document.getElementById("music-start-row").style.display="none";
+  loadDefaultLofi();
+});
+
+function handleMusicForRoom(room){
+  if(room==="lobby"||room==="study"){
+    showMusicBar(true);
+    if(!musicMode)musicTitle.textContent="Tocá 'Iniciar Lofi' para escuchar";
+  } else {
+    showMusicBar(false);
+  }
+}()=>{const val=musicUrl.value.trim();if(!val)return;const m=val.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})/);if(m)loadYouTube(val);else setAudioSrc(val,val.split("/").pop()||val);musicUrl.value="";});
 musicUrl.addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("music-load-btn").click();});
 document.getElementById("music-file-input").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;setAudioSrc(URL.createObjectURL(f),"📁 "+f.name);});
 
