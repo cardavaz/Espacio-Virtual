@@ -95,10 +95,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 #solitaire-canvas{display:block;border-radius:6px;cursor:pointer}
 #solitaire-status{color:var(--text2);font-size:12px;margin-bottom:6px;text-align:center}
 #solitaire-new{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:4px 12px;border-radius:8px;cursor:pointer;font-size:12px}
-#pomodoro-wrap{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:24px 36px;text-align:center;box-shadow:0 8px 32px rgba(74,55,40,.15)}
-#pom-time{font-size:48px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:2px}
-#pom-label{font-size:12px;color:var(--text3);margin-bottom:14px}
-.pom-btn{background:var(--accent);border:none;color:#fff;padding:7px 18px;border-radius:8px;cursor:pointer;font-size:13px;margin:0 3px;font-weight:600}
+#pomodoro-wrap{display:none;position:absolute;top:50%;right:12px;transform:translateY(-50%);z-index:10;background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:16px 18px;text-align:center;box-shadow:0 4px 20px rgba(74,55,40,.12);min-width:130px}
+#pom-time{font-size:36px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:1px}
+#pom-label{font-size:10px;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.pom-btn{background:var(--accent);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;margin:0 2px;font-weight:600}
 .pom-btn.secondary{background:var(--bg);color:var(--text);border:1.5px solid var(--border)}
 #music-bar{display:none;position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:8px 12px;z-index:20;flex-direction:column;gap:6px;min-width:280px;max-width:380px;box-shadow:0 4px 16px rgba(74,55,40,.12)}
 #music-bar.visible{display:flex}
@@ -248,160 +248,118 @@ document.getElementById("edit-avatar-btn").onclick=openAvatarEditor;
 document.getElementById("avatar-modal").onclick=e=>{if(e.target===document.getElementById("avatar-modal"))document.getElementById("avatar-modal").classList.remove("open");};
 makeColorRow("ae-skin",SKINS,"skin");makeColorRow("ae-hair",HAIRS,"hair");makeColorRow("ae-shirt",SHIRTS,"shirt");
 
-// ── PIXEL ART AVATAR 32x32 ────────────────────────────────────────────────
-function px(ctx,x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h);}
+// ── PIXEL ART AVATAR — CHIBI STYLE ───────────────────────────────────────
+// Avatar is 16x24px internally, drawn at 2.5x = 40x60px on screen
+function p(ctx,x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h);}
+function ol(ctx,x,y,w,h){ctx.strokeStyle=C.dk;ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);}
 
-function drawAvatar32(ctx,ox,oy,av,name,isMe,frame=0){
-  const skin=SKINS[av.skin]||SKINS[1];
-  const hair=HAIRS[av.hair]||HAIRS[1];
+function drawChibi(ctx,ox,oy,av,name,isMe,frame=0){
+  const skin =SKINS[av.skin]||SKINS[1];
+  const hair =HAIRS[av.hair]||HAIRS[1];
   const shirt=SHIRTS[av.shirt]||SHIRTS[0];
-  const isFem=av.gender==="f";
-  const S=1; // each "pixel" is 1px, avatar is 32px wide
-  const walk=frame%2;
+  const fem  =av.gender==="f";
+  const S    =2.5; // scale
+  const walk =frame%2;
+
+  function r(x,y,w,h,c){p(ctx,ox+x*S,oy+y*S,w*S,h*S,c);}
+  function o(x,y,w,h){ctx.strokeStyle=C.dk;ctx.lineWidth=.8;ctx.strokeRect(ox+x*S+.5,oy+y*S+.5,w*S-1,h*S-1);}
 
   // Shadow
-  ctx.fillStyle=C.sh;
-  ctx.beginPath();ctx.ellipse(ox+16,oy+44,11,4,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="rgba(42,26,8,0.18)";
+  ctx.beginPath();ctx.ellipse(ox+8*S,oy+23*S,6*S,2*S,0,0,Math.PI*2);ctx.fill();
 
-  // === LEGS ===
-  const pantC=isFem?skin:"#7090b8";
-  const shoeC=C.dk;
-  const shoeC2="#3a2a1a";
+  // Legs
+  const legC=fem?skin:"#8090b0";
+  const shoe=C.dk;
+  // walk animation: alternate leg heights slightly
+  const l1y=fem?18:17, l2y=fem?18:17;
+  const l1h=fem?5:6,   l2h=fem?5:6;
+  const l1yo=walk?1:0, l2yo=walk?0:1;
+  r(4,l1y+l1yo,3,l1h,legC); r(9,l2y+l2yo,3,l2h,legC);
+  r(3,l1y+l1yo+l1h,4,2,shoe); r(8,l2y+l2yo+l2h,4,2,shoe);
 
-  if(!isFem){
-    // Left leg
-    px(ctx,ox+9,oy+(walk?30:28),6,walk?14:12,pantC);
-    px(ctx,ox+8,oy+(walk?42:38),7,3,shoeC);
-    px(ctx,ox+7,oy+(walk?44:40),8,2,shoeC2);
-    // Right leg
-    px(ctx,ox+17,oy+(walk?28:30),6,walk?12:14,pantC);
-    px(ctx,ox+17,oy+(walk?38:42),7,3,shoeC);
-    px(ctx,ox+17,oy+(walk?40:44),8,2,shoeC2);
-    // Leg outline
-    ctx.fillStyle=C.dk2;
-    ctx.fillRect(ox+8,oy+28,1,16);ctx.fillRect(ox+23,oy+28,1,16);
-  } else {
-    // Skirt
-    px(ctx,ox+7,oy+28,18,10,shirt);
-    px(ctx,ox+5,oy+34,22,6,shirt);
-    ctx.fillStyle=C.dk2;ctx.fillRect(ox+5,oy+34,22,1);
-    // Legs under skirt
-    px(ctx,ox+9,oy+38,5,7,skin);
-    px(ctx,ox+18,oy+38,5,7,skin);
-    // Shoes
-    px(ctx,ox+8,oy+44,7,3,shoeC);px(ctx,ox+17,oy+44,7,3,shoeC);
-  }
+  // Skirt (female)
+  if(fem){r(3,16,10,5,shirt);r(2,19,12,3,shirt);}
 
-  // === BODY ===
-  // Shirt
-  px(ctx,ox+6,oy+16,20,14,shirt);
-  // Shirt shade bottom
-  ctx.fillStyle="rgba(42,26,8,0.12)";ctx.fillRect(ox+6,oy+26,20,4);
-  // Shirt highlight top
-  ctx.fillStyle="rgba(255,255,255,0.12)";ctx.fillRect(ox+7,oy+17,18,3);
-  // Outline body
-  ctx.fillStyle=C.dk2;
-  ctx.fillRect(ox+5,oy+16,1,14);ctx.fillRect(ox+26,oy+16,1,14);
-  ctx.fillRect(ox+6,oy+15,20,1);ctx.fillRect(ox+6,oy+30,20,1);
+  // Body
+  r(3,9,10,9,shirt);
+  ctx.fillStyle="rgba(42,26,8,0.08)";ctx.fillRect(ox+3*S,oy+15*S,10*S,3*S);
+  o(3,9,10,9);
 
-  // === COLLAR ===
-  if(!isFem){px(ctx,ox+13,oy+14,6,3,shirt);}
+  // Arms (slight swing)
+  const aSwing=walk?.8:-.8;
+  r(1,10+aSwing,2,6,shirt); r(11,10-aSwing,2,6,shirt);
+  r(1,15+aSwing,2,2,skin);  r(11,15-aSwing,2,2,skin);
 
-  // === ARMS ===
-  const armY=oy+17;
-  const armSwing=walk?2:-2;
-  px(ctx,ox+2,armY+armSwing,5,10,shirt);  // left arm
-  px(ctx,ox+25,armY-armSwing,5,10,shirt); // right arm
-  px(ctx,ox+2,armY+armSwing+9,5,4,skin);  // left hand
-  px(ctx,ox+25,armY-armSwing+9,5,4,skin); // right hand
-  ctx.fillStyle=C.dk2;
-  ctx.fillRect(ox+1,armY+armSwing,1,14);ctx.fillRect(ox+7,armY+armSwing,1,14);
-  ctx.fillRect(ox+24,armY-armSwing,1,14);ctx.fillRect(ox+30,armY-armSwing,1,14);
+  // Neck
+  r(6,7,4,3,skin);
 
-  // === NECK ===
-  px(ctx,ox+12,oy+11,8,5,skin);
+  // Head (chibi: bigger than body)
+  r(1,0,14,9,skin);
+  // head highlight
+  ctx.fillStyle="rgba(255,255,255,0.13)";ctx.fillRect(ox+3*S,oy+1*S,8*S,3*S);
+  // head shade
+  ctx.fillStyle="rgba(42,26,8,0.06)";ctx.fillRect(ox+1*S,oy+6*S,14*S,3*S);
+  o(1,0,14,9);
 
-  // === HEAD ===
-  px(ctx,ox+6,oy+1,20,14,skin);
-  // Head sides
-  px(ctx,ox+4,oy+3,2,10,skin);px(ctx,ox+26,oy+3,2,10,skin);
-  // Head shading
-  ctx.fillStyle="rgba(42,26,8,0.07)";ctx.fillRect(ox+6,oy+10,20,5);
-  ctx.fillStyle="rgba(255,255,255,0.15)";ctx.fillRect(ox+8,oy+2,14,4);
-  // Head outline
-  ctx.fillStyle=C.dk2;
-  ctx.fillRect(ox+6,oy,20,1);ctx.fillRect(ox+4,oy+2,2,1);ctx.fillRect(ox+26,oy+2,2,1);
-  ctx.fillRect(ox+6,oy+15,20,1);ctx.fillRect(ox+4,oy+13,2,1);ctx.fillRect(ox+26,oy+13,2,1);
-  ctx.fillRect(ox+3,oy+3,1,10);ctx.fillRect(ox+28,oy+3,1,10);
-
-  // === HAIR ===
+  // Hair
   ctx.fillStyle=hair;
-  ctx.fillRect(ox+6,oy+1,20,4); // top hair
-  ctx.fillRect(ox+4,oy+2,3,7);  // left sideburn
-  ctx.fillRect(ox+25,oy+2,3,7); // right sideburn
-  if(isFem){
-    ctx.fillRect(ox+3,oy+2,2,12); // long left
-    ctx.fillRect(ox+27,oy+2,2,12); // long right
-    ctx.fillRect(ox+6,oy+14,3,3); // curl left
-    ctx.fillRect(ox+23,oy+14,3,3); // curl right
-    // Hair highlight
-    ctx.fillStyle="rgba(255,255,255,0.2)";ctx.fillRect(ox+10,oy+1,6,2);
-  } else {
-    ctx.fillRect(ox+7,oy+1,3,5); // side left
-    ctx.fillRect(ox+22,oy+1,3,4); // side right
-    ctx.fillStyle="rgba(255,255,255,0.18)";ctx.fillRect(ox+10,oy+1,8,2);
+  ctx.fillRect(ox+1*S,oy,14*S,3*S);  // top
+  ctx.fillRect(ox+1*S,oy,2*S,7*S);   // left side
+  ctx.fillRect(ox+13*S,oy,2*S,6*S);  // right side
+  if(fem){
+    ctx.fillRect(ox+0*S,oy+1*S,2*S,9*S); // long left
+    ctx.fillRect(ox+14*S,oy+1*S,2*S,9*S);// long right
   }
-  // Hair outline
-  ctx.fillStyle=C.dk;
-  ctx.fillRect(ox+6,oy,20,1);
+  // hair shine
+  ctx.fillStyle="rgba(255,255,255,0.18)";ctx.fillRect(ox+4*S,oy+.5*S,4*S,1*S);
 
-  // === EYES ===
-  // Left eye
-  px(ctx,ox+9,oy+5,5,5,isFem?"#f8f0f0":"#f0f0f8");
-  px(ctx,ox+10,oy+6,3,4,isFem?"#784060":"#406080");
-  px(ctx,ox+11,oy+7,2,2,C.dk);
-  px(ctx,ox+10,oy+6,1,1,"#fff");
-  ctx.fillStyle=C.dk;ctx.fillRect(ox+9,oy+5,5,1);ctx.fillRect(ox+8,oy+6,1,5);ctx.fillRect(ox+14,oy+6,1,4);ctx.fillRect(ox+9,oy+10,5,1);
-  if(isFem){ctx.fillRect(ox+9,oy+4,5,1);ctx.fillRect(ox+8,oy+5,2,1);ctx.fillRect(ox+13,oy+5,2,1);}
+  // Eyes — large chibi eyes
+  const eyeC=fem?"#7060a0":"#406090";
+  // left eye
+  r(3,3,4,4,"#f8f0ee"); r(3,4,4,3,eyeC); r(4,5,2,2,C.dk); r(3,3,1,1,"#fff8");
+  ctx.fillStyle=C.dk;ctx.fillRect(ox+2*S,oy+3*S,.8*S,4*S);ctx.fillRect(ox+7*S,oy+3*S,.8*S,4*S);ctx.fillRect(ox+3*S,oy+2*S,4*S,.8*S);ctx.fillRect(ox+3*S,oy+7*S,4*S,.8*S);
+  if(fem){ctx.fillStyle=C.dk;ctx.fillRect(ox+3*S,oy+2*S,4*S,.8*S);}
+  // right eye
+  r(9,3,4,4,"#f8f0ee"); r(9,4,4,3,eyeC); r(10,5,2,2,C.dk); r(9,3,1,1,"#fff8");
+  ctx.fillStyle=C.dk;ctx.fillRect(ox+8*S,oy+3*S,.8*S,4*S);ctx.fillRect(ox+13*S,oy+3*S,.8*S,4*S);ctx.fillRect(ox+9*S,oy+2*S,4*S,.8*S);ctx.fillRect(ox+9*S,oy+7*S,4*S,.8*S);
+  if(fem){ctx.fillStyle=C.dk;ctx.fillRect(ox+9*S,oy+2*S,4*S,.8*S);}
 
-  // Right eye
-  px(ctx,ox+18,oy+5,5,5,isFem?"#f8f0f0":"#f0f0f8");
-  px(ctx,ox+19,oy+6,3,4,isFem?"#784060":"#406080");
-  px(ctx,ox+20,oy+7,2,2,C.dk);
-  px(ctx,ox+19,oy+6,1,1,"#fff");
-  ctx.fillStyle=C.dk;ctx.fillRect(ox+18,oy+5,5,1);ctx.fillRect(ox+17,oy+6,1,5);ctx.fillRect(ox+23,oy+6,1,4);ctx.fillRect(ox+18,oy+10,5,1);
-  if(isFem){ctx.fillRect(ox+18,oy+4,5,1);ctx.fillRect(ox+17,oy+5,2,1);ctx.fillRect(ox+22,oy+5,2,1);}
+  // Mouth
+  const mouthC=fem?"#d07878":"#b86868";
+  r(5,7,6,1,mouthC);
+  ctx.fillStyle=C.dk;ctx.fillRect(ox+5*S,oy+7*S,.8*S,.8*S);ctx.fillRect(ox+10*S,oy+7*S,.8*S,.8*S);
 
-  // === NOSE ===
-  px(ctx,ox+14,oy+11,4,2,skin==="rgba(253,232,200,1)"?C.dk2:"rgba(42,26,8,0.2)");
-
-  // === MOUTH ===
-  px(ctx,ox+11,oy+13,10,2,isFem?"#e08080":"#c07070");
-  ctx.fillStyle=C.dk;ctx.fillRect(ox+11,oy+13,1,1);ctx.fillRect(ox+20,oy+13,1,1);
-  // Smile
-  ctx.fillStyle="rgba(255,255,255,0.4)";ctx.fillRect(ox+12,oy+13,8,1);
-
-  // === CHEEKS (female) ===
-  if(isFem){
-    ctx.fillStyle="rgba(240,160,160,0.3)";
-    ctx.beginPath();ctx.ellipse(ox+10,oy+11,3,2,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(ox+22,oy+11,3,2,0,0,Math.PI*2);ctx.fill();
+  // Blush (female)
+  if(fem){
+    ctx.fillStyle="rgba(240,160,160,0.28)";
+    ctx.beginPath();ctx.ellipse(ox+3.5*S,oy+6*S,2*S,1.2*S,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(ox+12.5*S,oy+6*S,2*S,1.2*S,0,0,Math.PI*2);ctx.fill();
   }
 
-  // === ME RING ===
+  // Me indicator ring
   if(isMe){
-    ctx.strokeStyle="rgba(107,158,107,0.5)";ctx.lineWidth=2;
-    ctx.beginPath();ctx.ellipse(ox+16,oy+44,14,5,0,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle="rgba(107,158,107,0.55)";ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.ellipse(ox+8*S,oy+24*S,8*S,2.5*S,0,0,Math.PI*2);ctx.stroke();
   }
 
-  // === NAMETAG ===
+  // Nametag — always visible, contrasted
   if(name){
-    ctx.font=`bold ${isMe?10:9}px 'Segoe UI',system-ui`;
+    ctx.save();
+    ctx.font=`bold 9px 'Segoe UI',system-ui`;
     ctx.textAlign="center";
-    const tw=ctx.measureText(name).width+12;
-    ctx.fillStyle=isMe?"rgba(107,159,107,0.92)":"rgba(42,26,8,0.75)";
-    ctx.beginPath();ctx.roundRect(ox+16-tw/2,oy-18,tw,16,5);ctx.fill();
-    ctx.fillStyle="#fff";ctx.fillText(name,ox+16,oy-5);
+    const tw=ctx.measureText(name).width+10;
+    const tx=ox+8*S, ty=oy-4;
+    // shadow for readability
+    ctx.fillStyle="rgba(0,0,0,0.45)";
+    ctx.beginPath();ctx.roundRect(tx-tw/2+1,ty-13+1,tw,13,4);ctx.fill();
+    // background
+    ctx.fillStyle=isMe?"rgba(100,150,100,0.92)":"rgba(74,55,40,0.85)";
+    ctx.beginPath();ctx.roundRect(tx-tw/2,ty-14,tw,13,4);ctx.fill();
+    // text
+    ctx.fillStyle="#ffffff";
+    ctx.fillText(name,tx,ty-3);
+    ctx.restore();
   }
 }
 
@@ -409,12 +367,8 @@ function drawBigPreview(){
   const cv=document.getElementById("avatar-big-preview");if(!cv)return;
   const ctx=cv.getContext("2d");ctx.imageSmoothingEnabled=false;
   ctx.clearRect(0,0,80,112);
-  ctx.fillStyle="#e8f0e8";ctx.fillRect(0,0,80,112);
-  // Draw 2x scale
-  const tmp=document.createElement("canvas");tmp.width=32;tmp.height=48;
-  const tc=tmp.getContext("2d");tc.imageSmoothingEnabled=false;
-  drawAvatar32(tc,0,0,myAvatar,"",false,0);
-  ctx.drawImage(tmp,8,8,64,96);
+  ctx.fillStyle="#edf4ed";ctx.fillRect(0,0,80,112);
+  drawChibi(ctx,8,16,myAvatar,"",false,0);
 }
 
 // ── WORLD RENDERING ───────────────────────────────────────────────────────
@@ -729,11 +683,8 @@ function drawAvatars(){
     const sx=(vp.x/800)*W;
     const sy=(vp.y/450)*H;
     const av=p.avatarData||{gender:"m",skin:1,hair:1,shirt:0};
-    // Draw at 2x scale using offscreen canvas
-    const tmp=document.createElement("canvas");tmp.width=32;tmp.height=48;
-    const tc=tmp.getContext("2d");tc.imageSmoothingEnabled=false;
-    drawAvatar32(tc,0,0,av,p.name,p.id===socket.id,vp.frame);
-    avCtx.drawImage(tmp,sx-32,sy-48,64,96);
+    const S=2.5;
+    drawChibi(avCtx,sx-8*S,sy-24*S,av,p.name,p.id===socket.id,vp.frame);
   });
 }
 
